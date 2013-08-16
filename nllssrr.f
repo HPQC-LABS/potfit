@@ -334,23 +334,12 @@ c   of change, sensitivity & uncertainty to correct label.
      1                                                      J=1,NPTOT)
           IF(NITER.GT.1) THEN
 c** Test for convergence:  for every parameter desire:
-c  |parameter change| < |parameter sensitivity|,  but after iteration #5
-c  STOP iterating if  Max{|change/sens.|} increases AND 
-c  Max{|change/unc.|} < 0.01
-c              IF((TSTPS.GT.1.d0).AND.(ABS(RMSR-RMSRB).GE.0.000005)) THEN
-               IF((TSTPS.GT.1.d0)) THEN
-c                 IF((RMSR.GT.RMSRB).AND.(ITER.GT.5)) THEN
-c                     IF((TSTPU.LT.1.d-2).OR.((TSTPU.LT.0.5d0).AND.
-c    1                                             (ITER.GT.10))) THEN
-c                         IF(LPRINT.GE.3) WRITE(6,606) ITER,TSTPU,RMSR
-c                         GO TO 54
-c                         ENDIF
-c                     ENDIF
-                ELSE
-                  IF(LPRINT.GE.3) WRITE(6,608) ITER,TSTPS,RMSR
-                  GO TO 54
-                ENDIF
-              ENDIF
+c  |RMSD - RMSD(previous cycle)| < 0.000001
+               IF(ABS(RMSR-RMSRB).LT.0.000001) THEN
+                          IF(LPRINT.GE.3) WRITE(6,606) ITER,TSTPU,RMSR
+                          GO TO 54
+               ENDIF
+           ENDIF
 cc        CALL FLUSH(6)
           IF(ROBUST.GT.0) Zthrd= 1.d0/3.d0
    50     CONTINUE
@@ -480,10 +469,8 @@ c
      1  i4,' NPMAX=',i4,', NDATA=',i6,'}')
   604 FORMAT(' After Cycle #',i2,':   DRMSD=',1PD12.5,'    test(PS)=',
      1  1PD8.1,'   test(PU)=',D8.1)
-  606 FORMAT(/' Effective',i3,'-cycle Cgce:  MAX{|change/unc.|}=',
-     1  1PD8.1,' < 0.01   DRMSD=',D10.3)
-  608 FORMAT(/' Full',i3,'-cycle convergence:  Max{|change/sens.|}=',
-     1  1PD8.1,' < 1 , and change(DRMSD)<0.000005  DRMSD=',D10.2)
+  606 FORMAT(/' Full',i3,'-cycle convergence:  Max{|change/sens.|}=',
+     1  1PD8.1,' < 1   DRMSD=',D10.2)
   610 FORMAT(/ ' !! CAUTION !! fit of',i4,' parameters to',I6,' data not
      1converged after',i3,' Cycles'/5x,'DRMS(deviations)=',1PD10.3,
      2 '    test(PS) =',D9.2,'    test(PU) =',D9.2/1x,31('**'))
