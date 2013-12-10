@@ -18,6 +18,7 @@ c  weight of that atom and set GNS=-1 and ABUND=-1.
 c                          COPYRIGHT 2005-2010
 c** By R.J. Le Roy (with assistance from G.T. Kraemer & J.Y. Seto).
 c           Last modified  25 July 2010 (added proton, d, t)
+c      N. S. Dattani added various Li isotopes on 10 Dec 2013
 c***********************************************************************
       REAL*8 zm(123,0:10),mass,ab(123,10),abund
       INTEGER i,ian,imn,gel(123),nmn(123),mn(123,10),ns2(123,10),
@@ -36,11 +37,11 @@ c
       DATA  (ns2(2,i),i=1,2)/1,0/
       DATA  (ab(2,i),i=1,2)/0.000137d0,99.999863d0/
 c
-      DATA  at(3),gel(3),nmn(3),(mn(3,i),i=1,10)/'Li',2,2,3,4,5,6,7,8,9,
-     1                                                10,11,12/
-      DATA  (zm(3,i),i=0,10)/6.941d0,3.030775,4.02719,5.01254,
-     1  6.015122795d0, 7.01600455d0, 8.02248736,  9.0267895, 10.035481,
-     2  11.043798, 12.05378/
+      DATA  at(3),gel(3),nmn(3),(mn(3,i),i=1,10)/'Li',2,10,3,4,5,6,7,8,
+     1                                               9,10,11,12/
+      DATA  (zm(3,i),i=0,10)/6.941d0,3.030775d0,4.02719d0,5.01254d0,
+     1  6.015122795d0, 7.01600455d0, 8.02248736d0,  9.0267895d0,
+     2  10.035481d0,11.04372361d0, 12.05378d0/
       DATA  (ns2(3,i),i=1,2)/2,3/
       DATA  (ab(3,i),i=1,2)/7.5d0,92.5d0/
 c
