@@ -1,6 +1,6 @@
 c***********************************************************************
-      SUBROUTINE AF3X3potRet(RDIST,DELTAE,C3val,C6val,
-     1               C8val,De,ULR,DEIGM1,DEIGM3,DEIGM5,DEIGR,DEIGDe)
+      SUBROUTINE AF3X3potRet(RDIST,DELTAE,C3val,C3valP,C6val,
+     1  C8val,De,ULR,DEIGM1,DEIGM2,DEIGM3,DEIGM5,DEIGR,DEIGDe)
 c***********************************************************************
 c** Subroutine to generate the lowest eigenvalue of the 3x3 long-range
 c  Li2 interaction matrix of Eq.(25) of J.Mol.Spectr. 268, 199 (2011), 
@@ -10,14 +10,15 @@ c==> Output:  ULR= -lambda(min) and iuts partial derivatives DEIGxx
 c** Version from Nik in June 2011 for Real root case; cosmetically 
 c    modified by RJL in Aug 2011
 c-----------------------------------------------------------------------
-      REAL*8  A(3,3),DM1(3,3),DM3(3,3),DM5(3,3),DR(3,3),
+      REAL*8  A(3,3),DM1(3,3),DM2(3,3),DM3(3,3),DM5(3,3),DR(3,3),
      1              DDe(3,3),Q(3,3)
-      REAL*8  DEIGM1(1,1),DEIGM3(1,1),DEIGM5(1,1),DEIGR(1,1),
-     1        DEIGDe(1,1), EIGVEC(3,1), RESID(3,1), W(3) 
-      REAL*8  RDIST,RDIST2,RDIST3,DELTAE,C3val,C6val,C8val,De,ULR,
-     1   RET,RETSig,RETPi,Modulus,M1,M3,M5,Z
+      REAL*8  DEIGM1(1,1),DEIGM2(1,1),DEIGM3(1,1),DEIGM5(1,1),
+     1        DEIGR(1,1),DEIGDe(1,1), EIGVEC(3,1), RESID(3,1), W(3) 
+      REAL*8  RDIST,RDIST2,RDIST3,DELTAE,C3val,C3valP,C6val,C8val,De,
+     1   ULR,RET,RETSig,RETPi,Modulus,M1,M2,M3,M5,Z
       INTEGER          I,J,L,K
       M1= C3val
+      M2= C3valP
       M3= C6val
       M5= C8val
       RET= 9.36423830d-4*RDIST
@@ -35,7 +36,7 @@ ccccc Prepare interation matrix  A
       A(1,1)= -(M1*RETSig+ M3/(RDIST3)+M5/(RDIST3*RDIST2))/(3.d0*RDIST3)
       A(1,2)= -(DSQRT(2.D0))*A(1,1)
       A(2,1)= A(1,2)
-      A(1,3)= M1*RETPi/(DSQRT(6.D0)*RDIST3)
+      A(1,3)= 2*M2*RETPi/(DSQRT(6.D0)*RDIST3)
       A(3,1)= A(1,3)
       A(2,2)= 2*A(1,1) + DELTAE
       A(2,3)= A(1,3)/DSQRT(2.d0)
@@ -57,11 +58,21 @@ cccccc Partial derivative of interaction matric  H  w.r.t.  C3
       DM1(1,2)= -DSQRT(2.d0)*DM1(1,1)
       DM1(2,1)= DM1(1,2)
       DM1(2,2)= 2.d0*DM1(1,1)
-      DM1(1,3)= RETPi/(DSQRT(6.d0)*RDIST3)
-      DM1(3,1)= DM1(1,3)
-      DM1(2,3)= DM1(1,3)/DSQRT(2.d0)
-      DM1(3,2)= DM1(2,3)
+      DM1(1,3)= 0.d0
+      DM1(3,1)= 0.d0
+      DM1(2,3)= 0.d0
+      DM1(3,2)= 0.d0
       DM1(3,3)= 0.d0
+cccccc Partial derivative of interaction matric  H  w.r.t.  C3
+      DM2(1,1)= 0.d0
+      DM2(1,2)= 0.d0
+      DM2(2,1)= 0.d0
+      DM2(2,2)= 0.d0
+      DM2(1,3)= RETPi/(DSQRT(6.d0)*RDIST3) 
+      DM2(3,1)= DM2(1,3)
+      DM2(2,3)= DM2(1,3)/DSQRT(2.d0)
+      DM2(3,2)= DM2(2,3)
+      DM2(3,3)= 0.d0
 cccccc Partial derivative of interaction matric  H  w.r.t.  C6
       DM3(1,1)= -1.d0/(3.d0*RDIST3**2)
       DM3(1,2)= -SQRT(2.d0)*DM3(1,1)
@@ -106,6 +117,7 @@ ccc Nor - identify the lowest eigenvalue of  H  and label it  L
           EIGVEC(I,1) = Q(I,L)
           ENDDO  
       DEIGM1= -MATMUL(TRANSPOSE(EIGVEC),MATMUL(DM1,EIGVEC))
+      DEIGM2= -MATMUL(TRANSPOSE(EIGVEC),MATMUL(DM2,EIGVEC))
       DEIGM3= -MATMUL(TRANSPOSE(EIGVEC),MATMUL(DM3,EIGVEC))
       DEIGM5= -MATMUL(TRANSPOSE(EIGVEC),MATMUL(DM5,EIGVEC))           
       DEIGR = -MATMUL(TRANSPOSE(EIGVEC),MATMUL(DR,EIGVEC))
@@ -212,7 +224,7 @@ c --- This loop can be omitted if only the eigenvalues are desired ---
    61             CONTINUE
    60         CONTINUE
    40     CONTINUE
-      PRINT *, "DSYEVJ3: No convergence."
+c      PRINT *, "DSYEVJ3: No convergence."
       END SUBROUTINE DSYEVJ3
       END SUBROUTINE AF3X3potRet
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
