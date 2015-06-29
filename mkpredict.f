@@ -24,9 +24,9 @@ c-----------------------------------------------------------------------
       INCLUDE 'BLKTYPE.h'
 c-----------------------------------------------------------------------
 c
-      CHARACTER*2 LABLP,LABLPP
-      INTEGER I,J,J2,JD,J2DL,J2DU,J2DD,JMAXX,PP,PPP,NTRANS,COUNT,
-     1  IBAND,JMAX(NPARMX),JMIN(NPARMX),
+      CHARACTER*3 LABLP,LABLPP
+      INTEGER I,J,J2,JD,J2DL,J2DU,J2DD,JMAXX,PP,PPP,NTRANST,COUNT,
+     1  IBAND,JMAXP(NPARMX),JMINP(NPARMX),
      1  VMX(NSTATEMX),ISOT,ESP,ESPP,ISTATE,MN1,MN2
       INTEGER NSTATES,NDAT(0:NVIBMX,NISTPMX,NSTATEMX)
 c-----------------------------------------------------------------------
@@ -90,9 +90,9 @@ c** Determine the correct isotopomer-number for this band.
           ENDDO
       ISTP(IBAND)= ISOT
       MAXUFREQ(IBAND)= 0
-      JMAX(IBAND)= JMAXX
-      JMIN(IBAND)= 0
-      NTRANS= 0
+      JMAXP(IBAND)= JMAXX
+      JMINP(IBAND)= 0
+      NTRANST= 0
       IFIRST(IBAND)= COUNT+ 1
       ESP= IEP(IBAND)
       ESPP= IEPP(IBAND)
@@ -124,13 +124,13 @@ c** Accumulate count of data associated with each vibrational level ...
               ENDDO
           ENDDO
       WRITE(4,404)
-  400 FORMAT(2I4,"   '",A2,"'  '",A2,"'   ",2I4)
+  400 FORMAT(2I4,"   '",A3,"'  '",A3,"'   ",2I4,"     'predictions' ")
   402 FORMAT(I4,I3,I5,I3,'    0.d0     1.0d-3')
   404 FORMAT('  -1 -1   -1 -1    -1.d0    -1.d-3'/)
       VMX(ESP)= MAX(VMX(ESP),VP(IBAND))
       VMX(ESPP)= MAX(VMX(ESPP),VPP(IBAND))
       ILAST(IBAND)= COUNT
-      NTRANS= ILAST(IBAND)-IFIRST(IBAND)+1
+      NTRANST= ILAST(IBAND)-IFIRST(IBAND)+1
       GOTO 70
    99 RETURN
   609 FORMAT(/' *** ERROR *** Dimension allocated for number of bands ex

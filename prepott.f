@@ -1,5 +1,5 @@
 c***********************************************************************
-      SUBROUTINE PREPOTT(LNPT,IAN1,IAN2,IMN1,IMN2,NPP,VLIM,RR,VV)
+      SUBROUTINE PREPOTT(LNPT,IAN1,IAN2,IMN1,IMN2,NPP,VLIM,RR,VV,Re)
 c** Driver subroutine of package to generate a potential function VV(i) 
 c  at the NPP input distances  RR(i)  by reading, interpolating over and
 c  extrapolating beyond a set of up to NPTMX read-in points.  
@@ -31,13 +31,14 @@ c+ Calls GENINT (which calls PLYINTRP, SPLINT & SPLINE)
 c++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** Set maximum array dimension for the input function values to be
 c  interpolated over & extrapolated beyong
-      INTEGER NTPMX
+      INCLUDE 'arrsizes.h'
+      INTEGER NTPMX,VMIN,ISTATE,IDAT,K
       PARAMETER (NTPMX= 1600) 
       INTEGER I,J,IAN1,IAN2,IMN1,IMN2,INPTS,ILR,IR2,JWR,LNPT,LWR,
      1  NCN,NLIN,NPP,NROW,NTP,NUSE
       REAL*8  RFACT,EFACT,RH,RMIN,VLIM,VSHIFT,VV(NPP),RR(NPP),RM2(NPP),
      1  XI(NTPMX),YI(NTPMX),RWR(20),VWR(20),VWRB(3),D1V(3),D1VB(3),
-     2  D2V(3),CNN
+     2  D2V(3),CNN,RDIST(8),VDIST(8),DVDR(8),D2VDR2(8),Re(NSTATEMX)
 c
 c** Save variables needed for 'subsequent' LNPT.le.0 calls
       SAVE ILR,IR2,NTP,NUSE
@@ -69,6 +70,34 @@ c* If ILR > 3 : successive higher power terms differ by factor  1/R
 c-------------------------------------------------------------------
       READ(5,*) NTP, NUSE, IR2, ILR, NCN, CNN
 c-------------------------------------------------------------------
+      VMIN= 1.0d9
+      IF(NTP.LE.0) THEN 
+      WRITE(6,601) !'comments to say PEC generated as analytic ...'
+          DO I=1,NPP,8
+              DO J=1,8
+                  RDIST(J)= RR(J+I-1)
+                  ENDDO
+              CALL VGENP(ISTATE,RDIST,VDIST,DVDR,D2VdR2,IDAT)
+              DO J=1,8
+                  VV(J+I-1)= VDIST(J)
+                  IF(VV(J+I-1).LT.VMIN) THEN
+                      VMIN= VV(J+I-1)
+                      Re= RR(J+I-1)
+                      ENDIF    
+                  ENDDO
+              ENDDO
+              IF((I+J-1).LT.NPP) THEN
+                  DO K= I+J-1,NPP
+                      VV(K)= VLIM
+                      ENDDO
+                  ENDIF
+c+++ Write for testing ++++++++++++++++++++++++++++++++++
+cc            REWIND(10)
+              WRITE(10,603)  (RR(I),VV(I),I= 1,NPP,20)
+c++++++++++++++++++++++++++++++++++++++++++++++++++++++++              
+          RETURN
+          ENDIF
+c**** End of generation of non-standard PEC *****************************
       IF(NTP.GT.NTPMX) THEN
           WRITE(6,602) NTP,NTPMX
           STOP
@@ -151,11 +180,18 @@ c                 WRITE(6,622) (RWR(J),VWR(J),D1V(J),D2V(J),J= 1,2)
 c                 ENDDO
 c           ENDIF
 c         ENDIF
+c+++ Write for testing ++++++++++++++++++++++++++++++++++
+      REWIND(10)
+      WRITE(10,603)  (RR(I),VV(I),I= 1,NPP,20)
+c++++++++++++++++++++++++++++++++++++++++++++++++++++++++              
       IF(LNPT.GT.0) WRITE(6,624)
       RETURN
   600 FORMAT(' State has energy asymptote:   Y(lim)=',F12.4,'[cm-1]')
+  601 FORMAT(/'NTP is set less than or equal to zero. Therfore Fitting'
+     1                                        ' to analytic function')
   602 FORMAT(/' **** ERROR in dimensioning of arrays required'
      1 ,' by GENINT;   No. input points ',I5,' > NTPMX =',I4)
+  603 FORMAT(5x, F12.4,f14.4)
   604 FORMAT(' Perform',I3,'-point piecewise polynomial interpolation ov
      1er',I5,' input points' )
   606 FORMAT(' Perform cubic spline interpolation over the',I5,

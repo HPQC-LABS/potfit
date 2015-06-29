@@ -31,13 +31,14 @@ c=======================================================================
       INCLUDE 'BLKCOUNT.h'
 c-----------------------------------------------------------------------
 c** Common block for partial derivatives of potential at the one distance RDIST
-      REAL*8 dVdPk(HPARMX)
-      COMMON /dVdPkBLK/dVdPk
+c   and HPP derivatives for uncertainties
+      REAL*8 dVdPk(HPARMX),dDe(0:NbetaMX),dDedRe
+      COMMON /dVdPkBLK/dVdPk,dDe,dDedRe
 c=======================================================================
-      INTEGER IDAT,NPTOT,NBAND,IISTP,ISTATE,I,J,NDATA
+      INTEGER IDAT,NPTOT,NBAND,IISTP,ISTATE,I,J,NDATA,fcount
 c
 c** Define parameters required locally and from NLLSSRR.
-      REAL*8 RDIST,VDIST,BETADIST,EUP,ELW,YOBS,YC,EO,width,
+      REAL*8 RDIST,VDIST,BETADIST,VLAST,EUP,ELW,YOBS,YC,EO,width,
      1  PV(NPARMX),PD(NPARMX),UPPER(NPARMX),LOWER(NPARMX),
      2  DEDPK(HPARMX),BVIR,dBVIRdP(NPARMX)
 c
@@ -50,8 +51,10 @@ c++ At beginning of each fit cycle (datum #1), re-map internal NLLSSRR
 c  parameter array PV onto external (physical) variable set, and get
 c  updated band constant array ZK for estimating trial eigenvalues.
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+          fcount= 0
           CALL MAPPAR(NISTP,PV,1)
           REWIND(22)
+          REWIND(7)
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** If fitting to fluoresence data, convert fluoresence series origin
 c   parameters back to external (logical) variable system.
@@ -63,11 +66,11 @@ c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
               ENDIF
           DO  ISTATE= 1,NSTATES
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-c** Call subroutine to update potential functions and their partial 
+c** Call subroutine to update potential functions AND their partial 
 c   derivatives w.r.t. fitting parameter for each state.
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
               IF(PSEL(ISTATE).GT.0) CALL VGEN(ISTATE,-1.d0,VDIST,
-     1                                                      BETADIST,0)
+     1                                                  BETADIST,IDAT)
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** Now generate band constants for each state and isotopomer for 
 c  generating trial eigenvalues in fit calculations.  To take account of
@@ -77,9 +80,10 @@ c  generate values for levels to the input VMAX for isotopomer-1.
                   DO  IISTP= 1,NISTP
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** Call subroutine INITDD to calculate band constants for initial
-c   trial eigenvalue estimates as well as the partial derivatives.
+c   trial eigenvalue estimates as well as (? what) the partial derivatives.
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                     CALL INITDD(ISTATE,IISTP,VMAX(ISTATE,IISTP),INNR)
+     1                                                            
                     ENDDO
                   ENDIF
               ENDDO
@@ -117,7 +121,7 @@ c ... if this FS band shares its origin with some earlier FS band ...
                   ENDIF
               ENDDO
           CALL DEDP(IDAT,IEPP(NBAND),IISTP,ZMASS(3,IISTP),
-     1               JP(IDAT),JPP(IDAT),EFPP(IDAT),ELW,width,LOWER)
+     1           JP(IDAT),JPP(IDAT),EFPP(IDAT),ELW,width,LOWER,fcount)
               IF(ELW.LT.-9.d9) THEN
 c... if eigenvalue search failed, remove this datumn from the fit
                   WRITE(6,600) SLABL(IEPP(NBAND)),JP(IDAT),JPP(IDAT),
@@ -137,7 +141,7 @@ c=======================================================================
 c*** For PAS data ...
 c=======================================================================
           CALL DEDP(IDAT,IEPP(NBAND),IISTP,ZMASS(3,IISTP),
-     1               JP(IDAT),JPP(IDAT),EFPP(IDAT),ELW,width,LOWER)
+     1           JP(IDAT),JPP(IDAT),EFPP(IDAT),ELW,width,LOWER,fcount)
               IF(ELW.LT.-9.d9) THEN
 c... if eigenvalue search failed, remove this datum from the fit
                   WRITE(6,600) SLABL(IEPP(NBAND)),JP(IDAT),JPP(IDAT),
@@ -159,7 +163,7 @@ c*** If datum is width of a tunneling-predissociation quasibound level
 c ... for forward calculation, use widths from SCHRQ in DEDP
 c=======================================================================
           CALL DEDP(IDAT,IEPP(NBAND),IISTP,ZMASS(3,IISTP),
-     1                JP(IDAT),JPP(IDAT),EFPP(IDAT),EO,width,DEDPK)
+     1            JP(IDAT),JPP(IDAT),EFPP(IDAT),EO,width,DEDPK,fcount)
               IF(EO.LT.-9.d9) THEN
 c... if eigenvalue search failed, remove this datumn from the fit
                   WRITE(6,600) SLABL(IEPP(NBAND)),JP(IDAT),JPP(IDAT),
@@ -167,7 +171,7 @@ c... if eigenvalue search failed, remove this datumn from the fit
                   YC= YOBS
                   RETURN
                   ENDIF
-c ... otherwise ... calculate 'width' and its detivatives in DWDP
+c ... otherwise ... calculate 'width' and its derivatives in DWDP
           IF(PSEL(IEPP(NBAND)).GT.0) THEN
               CALL DWDP(IDAT,IEPP(NBAND),FREQ(IDAT),ZMASS(3,IISTP),
      1                           JP(IDAT),JPP(IDAT),EO,width,DEDPK,PD)
@@ -179,13 +183,15 @@ c
 c=======================================================================
 c*** If datum is the potential energy function at some specific distance
 c=======================================================================
+          ISTATE= IEPP(NBAND) 
           RDIST= TEMP(IDAT)
-ccc       ISTATE= IEPP(NBAND)
+          VLAST= VPOT(NPNTMX,ISTATE)
           CALL VGEN(IEPP(NBAND),RDIST,VDIST,BETADIST,IDAT)
           YC= VDIST
           DO  J= POTPARI(IEPP(NBAND)), POTPARF(IEPP(NBAND))
-              UPPER(J)= dVdPk(J) 
+              PD(J)= dVdPk(J) 
               ENDDO
+          VPOT(NPNTMX,ISTATE)= VLAST 
           RETURN
         ELSEIF(IEP(NBAND).EQ.-4) THEN
 c=======================================================================
@@ -208,7 +214,7 @@ c... if upper state being represented by term values ...
 c... for normal case of UPPER level being represented by a potential
 c=======================================================================
               CALL DEDP(IDAT,IEP(NBAND),IISTP,ZMASS(3,IISTP),
-     1              VP(NBAND),JP(IDAT),EFP(IDAT),EUP,width,UPPER)
+     1            VP(NBAND),JP(IDAT),EFP(IDAT),EUP,width,UPPER,fcount)
               IF(EUP.LT.-9.d9) THEN
 c... if eigenvalue search failed, remove this datumn from the fit
                   WRITE(6,600) SLABL(IEP(NBAND)),VP(NBAND),JP(IDAT),
@@ -233,7 +239,7 @@ c... if lower state being represented by term values ...
             ELSE
 c... for normal case of LOWER level being represented by a potential
               CALL DEDP(IDAT,IEPP(NBAND),IISTP,ZMASS(3,IISTP),
-     1           VPP(NBAND),JPP(IDAT),EFPP(IDAT),ELW,width,LOWER)
+     1           VPP(NBAND),JPP(IDAT),EFPP(IDAT),ELW,width,LOWER,fcount)
               IF(ELW.LT.-9.d9) THEN
 c... if eigenvalue search failed, remove this datumn from the fit
                   WRITE(6,600) SLABL(IEPP(NBAND)),VPP(NBAND),JPP(IDAT),
@@ -263,7 +269,7 @@ cc   1  d9.2)
 cc        ENDIF
 c----------------------------------------------------------------------
       RETURN
-  600 FORMAT(' *** FAIL to find level(',A2,')   v=',I3,'   J=',I3,
+  600 FORMAT(' *** FAIL to find level(',A3,')   v=',I3,'   J=',I3,
      1  '  so ignore  YOBS(',i5,')=',f12.4)
       END
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
@@ -288,32 +294,27 @@ c=======================================================================
       INCLUDE 'BLKPOT.h'
 c-----------------------------------------------------------------------
 c
-      INTEGER ISTATE, IISTP, VIMX, AFLAG, 
-     1  VIN, NBEG, NEND, WARN, IWR, LPRWF, I, J, INNODE, KV
+      INTEGER ISTATE,IISTP,VIMX,AFLAG,VIN,NBEG,NEND,WARN,IWR,LPRWF,I,J,
+     1   INNODE,KV,NCN
 c
-      REAL*8 GV(0:NVIBMX),RCNST(NROTMX),RM2(NPNTMX),V(NPNTMX),
-     1  SWF(NPNTMX),FWHM,PMAX,BFCT,BvWN,RHSQ,C3gu,T3
+      REAL*8 GV(0:NVIBMX),RCNST(NROTMX),RR(NPNTMX),RM2(NPNTMX),
+     1  V(NPNTMX),SWF(NPNTMX),FWHM,PMAX,BFCT,BvWN,RHSQ,C3gu,T3
 c
       INTEGER INNR(0:NVIBMX)
-      REAL*8 SWF2,qDBL,qFCT
+      REAL*8 SWF2,qDBL,qFCT,Cm1
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-      IF((ISTATE.EQ.1).AND.(IISTP.EQ.1)) THEN
-          REWIND(7)
-          REWIND(21)
-          ENDIF
       VIN= VIMX
       AFLAG= 0
       WARN= 0
       IWR= -1
-ccc   iwr= 5
       LPRWF= 0
       INNODE= 1
 c
 c** Calculate potential scaling factors for ALF and CDJOEL
 c
       RHSQ= RH(ISTATE)*RH(ISTATE) 
-      BFCT= (ZMASS(3,IISTP)/16.857629205D0)*RHSQ
-      BvWN= 16.857629205D0/ZMASS(3,IISTP)
+      BFCT= (ZMASS(3,IISTP)/16.857629206D0)*RHSQ
+      BvWN= 16.857629206D0/ZMASS(3,IISTP)
       qFCT= RH(ISTATE)*BvWN**(2*IOMEG(ISTATE))
 c
 c** Now generate the BFCT-scaled and adiabatically corrected potential
@@ -321,6 +322,7 @@ c   for the current isotope for use in SCHRQ, plus the 1/R**2 array for
 c   CDC calculations in CDJOEL
 c
       DO  I=1,NDATPT(ISTATE)
+          RR(I)= RD(I,ISTATE)
           V(I)= BFCT*(VPOT(I,ISTATE)+ ZMUA(IISTP,ISTATE)*UAR(I,ISTATE)
      1                             + ZMUB(IISTP,ISTATE)*UBR(I,ISTATE))
           RM2(I)= 1.d0/RD(I,ISTATE)**2
@@ -336,19 +338,23 @@ c** Add g/u symmetry breakdown correction for special case {6,7}Li2(A) !!
               V(I)= V(I) + BFCT*(T3 - DSQRT(T3**2 + 0.03085959756d0))
               ENDDO
           ENDIF
-c!!
       IF((NTA(ISTATE).GE.0).OR.(NTB(ISTATE).GE.0)) THEN
           DO  I= 1, NDATPT(ISTATE)
               RM2(I)= RM2(I)*(1.d0 + ZMTA(IISTP,ISTATE)*TAR(I,ISTATE) 
      1                             + ZMTB(IISTP,ISTATE)*TBR(I,ISTATE))
               ENDDO
           ENDIF
+      NCN= 999
+      Cm1 = CmVAL(1,ISTATE)
+      IF(MMLR(1,ISTATE).LE.0) Cm1 = CmVAL(2,ISTATE) 
+      IF((PSEL(ISTATE).GE.2).AND.(Cm1.GT.0.d0)) 
+     1    NCN= MMLR(1,ISTATE)
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** Call subroutine ALF that will locate the needed vibrational levels 
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-      CALL ALF(NDATPT(ISTATE),RMIN(ISTATE),RH(ISTATE),MMLR(1,ISTATE),V,
-     1 SWF,VLIM(ISTATE),VIN,NVIBMX,AFLAG,ZMASS(3,IISTP),EPS(ISTATE),GV,
-     1 INNODE,INNR,IWR)
+      CALL ALF(NDATPT(ISTATE),RH(ISTATE),NCN,RR,V,SWF,VLIM(ISTATE),
+     1  MAXMIN(ISTATE),VIN,NVIBMX,AFLAG,ZMASS(3,IISTP),EPS(ISTATE),GV,
+     2  INNODE,INNR,IWR)
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** If a serious error occured during within ALF, then print out a 
 c   warning, record the constants that we have and hope the program
@@ -358,7 +364,7 @@ c
           WRITE(6,600) ISTATE,IISTP
           IF(AFLAG.EQ.-1) THEN
               WRITE(6,601) VIN,VIMX, AFLAG
-              STOP
+              STOP              !! ??  need to stop or just Print Warning
               ENDIF
           IF (AFLAG.EQ.-2) WRITE(6,602)
           IF (AFLAG.EQ.-3) WRITE(6,603)
@@ -368,17 +374,35 @@ c
           IF (AFLAG.EQ.-8) THEN
               WRITE(6,610)
         ELSE
-          WRITE(6,612) VIN
+          WRITE(6,612) ISTATE,VIN
         ENDIF
       ENDIF
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** Now to calculate the rotational constants for each vibrational level
 c   of this state for this isotopologue
-      IF(NwCFT(ISTATE).LT.0) THEN
-          WRITE(7,614)  NAME(1),MN(1,IISTP),NAME(2),MN(2,IISTP)
-        ELSE
-          WRITE(7,618)  NAME(1),MN(1,IISTP),NAME(2),MN(2,IISTP)
-        ENDIF
+      IF(IOMEG(ISTATE).GT.0) THEN
+          IF(NwCFT(ISTATE).GT.0) THEN
+              WRITE(7,615)  NAME(1),MN(1,IISTP),NAME(2),MN(2,IISTP),
+     1                      IOMEG(ISTATE), IOMEG(ISTATE)*IOMEG(ISTATE)
+            ELSE
+              WRITE(7,617)  NAME(1),MN(1,IISTP),NAME(2),MN(2,IISTP),
+     1                      IOMEG(ISTATE), IOMEG(ISTATE)*IOMEG(ISTATE)
+            ENDIF
+        ELSEIF(IOMEG(ISTATE).LE.-2) THEN
+          IF(NwCFT(ISTATE).GT.0) THEN
+              WRITE(7,6615)  NAME(1),MN(1,IISTP),NAME(2),MN(2,IISTP),
+     1                      IOMEG(ISTATE), -IOMEG(ISTATE)
+            ELSE
+              WRITE(7,6617)  NAME(1),MN(1,IISTP),NAME(2),MN(2,IISTP),
+     1                      IOMEG(ISTATE), -IOMEG(ISTATE)
+            ENDIF
+        ELSE 
+          IF(NwCFT(ISTATE).LT.0) THEN
+              WRITE(7,614)  NAME(1),MN(1,IISTP),NAME(2),MN(2,IISTP)
+            ELSE
+              WRITE(7,618)  NAME(1),MN(1,IISTP),NAME(2),MN(2,IISTP)
+            ENDIF
+        ENDIF 
       DO  KV= 0,VIN
           AFLAG= 0
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -425,8 +449,8 @@ c
 c-----------------------------------------------------------------------
   600 FORMAT(/'  *** INITDD ERROR ***',/4X,'For state',I3,
      1'  of isotope',I3,'  a serious error has occured:')
-  601 FORMAT(4X,'ALF finds highest level   v=',i3,'  is below the desire
-     1d (v=',I3,', J=',I3,')')
+  601 FORMAT(' *** WARNING !! ALF finds highest level   v=',i3,'  is bel
+     1ow desired (v=',I3,', J=',I3,')')
   602 FORMAT(4X,'The Schrodinger Solver was unable to use the initial tr
      1ial energy.')
   603 FORMAT(4X,'The Schrodinger Solver was unable to use the calculated
@@ -436,11 +460,32 @@ c-----------------------------------------------------------------------
   606 FORMAT(4X,'The next calculated trial energy was too low.')
   608 FORMAT(4X,'The next calculated trial energy was too high.')
   610 FORMAT(4X,'A second minimum exists in this potential')
-  612 FORMAT(4X,'Could not find vibrational levels beyond (v=',I3,')')
+  612 FORMAT(4X,'Could not find vibrational levels of state',i3,
+     1  ' beyond (v=',I3,')')
   614 FORMAT(/' For  ',A2,'(',I3,') - ',A2,'(',I3,')'/1x,11('--')/
      1  '   v       ','E',12x,'Bv',11x,'-Dv',13x,'Hv',13x,'Lv',
      2  12x,'Mv',13x,'Nv',13x,'Ov'/1x,58('=='))
+  615 FORMAT(/' For  ',A2,'(',I3,') - ',A2,'(',I3,')'/1x,11('==')/
+     1 ' Although   IOMEGA=',I2,', these band constants were obtained fo
+     2r  [J(J+1) ',SP,I2,'] = 0'/1x,39('--')/'   v       ','E',12x,'Bv',
+     3 11x,'-Dv',13x,'Hv',13x,'Lv',12x,'Mv',13x,'Nv',13x,'Ov'/
+     4 1x,58('=='))
+ 6615 FORMAT(/' For  ',A2,'(',I3,') - ',A2,'(',I3,')'/1x,11('==')/
+     1 ' Since   IOMEGA=',I3,', these band constants were obtained for',
+     2'  [J(J+1) ',SP,I2,'] = 2'/1x,39('--')/'   v       ','E',12x,'Bv',
+     3 11x,'-Dv',13x,'Hv',13x,'Lv',12x,'Mv',13x,'Nv',13x,'Ov'/
+     4 1x,58('=='))
   616 FORMAT(I4,f12.4,f14.10,7(1PD15.7))
+  617 FORMAT(/' For  ',A2,'(',I3,') - ',A2,'(',I3,')'/1x,11('==')/
+     1 ' Although   IOMEGA=',I2,', these band constants were obtained fo
+     2r  [J(J+1) ',SP,I2,'] = 0'/1x,39('--')/'   v       ','E',12x,'Bv',
+     3  11x,'-Dv',13x,'Hv',13x,'Lv',13x,'Mv',13x,'Nv',13x,'Ov'13x,
+     4  'qB(v)'/1x,67('=='))
+ 6617 FORMAT(/' For  ',A2,'(',I3,') - ',A2,'(',I3,')'/1x,11('==')/
+     1 ' Since   IOMEGA=',I3,', these band constants were obtained for',
+     2'  [J(J+1) ',SP,I2,'] = 2'/1x,39('--')/'   v       ','E',12x,'Bv',
+     3  11x,'-Dv',13x,'Hv',13x,'Lv',13x,'Mv',13x,'Nv',13x,'Ov'13x,
+     4  'qB(v)'/1x,67('=='))
   618 FORMAT(/' For  ',A2,'(',I3,') - ',A2,'(',I3,')'/1x,11('--')/
      1  '   v       ','E',12x,'Bv',11x,'-Dv',13x,'Hv',13x,'Lv',
      2  13x,'Mv',13x,'Nv',13x,'Ov'13x,'qB(v)'/1x,67('=='))
@@ -449,7 +494,7 @@ c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 
 c***********************************************************************
       SUBROUTINE DEDP(IDAT,ISTATE,IISTP,ZMU,KVLEV,JROT,efPARITY,EO,
-     1                                                     FWHM,DEDPK)
+     1                                              FWHM,DEDPK,fcount)
 c***********************************************************************
 c** This subroutine calculates  dE/dp from the expectation values of the
 c   partial derivatives of an analytical potential with respect to its
@@ -491,6 +536,7 @@ c          < 0 : compactly write to channel-7 every |LPRWF|-th wave
 c                function value.
 c          The first line identifies the level, gives the position of
 c          1-st point and radial mesh, & states No. of  points.
+c    fcount  counts the number of failed attempts to get desired level
 c=======================================================================
       INCLUDE 'arrsizes.h'
       INCLUDE 'BLKISOT.h'
@@ -502,14 +548,13 @@ c=======================================================================
       INCLUDE 'BLKBOBRF.h'
       INCLUDE 'BLKCOUNT.h'
 c=======================================================================
-      INTEGER IDAT, bandN, efPARITY, JRe
+      INTEGER IDAT, bandN, efPARITY, JRe, fcount
 c
       INTEGER I,ICOR,ISTATE,IISTP,INNER,J,JROT,JIN,KVLEV,KV, 
      1  NBEG,NEND,INNODE, IWR, LPRWF
-c
-      REAL*8 ZMU,EO,BFCT,JFCT,JFCTP,FWHM,UMAX, RM2, ETRY, BMAX, DGDV2,
-     1  SWF2,JFCTA,JFCTB, DUARe,DUBRe,DTARe,DTBRe,DLDRe,DEROT,DEROTB,
-     2  JFCTDBL,JFCTD, muFCT,C3gu,T3, GV(0:NVIBMX),Vtotal(NPNTMX),
+      REAL*8 ZMU,EO,BFCT,JFCT,JFCTP,JFCTL,FWHM,UMAX, RM2, ETRY, BMAX,
+     1  DGDV2,SWF2,JFCTA,JFCTB,DUARe,DUBRe,DTARe,DTBRe,DLDRe,DEROT,
+     2  DEROTB,JFCTDBL,JFCTD,muFCT,C3gu,T3,GV(0:NVIBMX),Vtotal(NPNTMX),
      3  SWF(NPNTMX), V(NPNTMX), DEDPK(HPARMX)
 c
       COMMON /VBLIK/Vtotal
@@ -522,9 +567,10 @@ c** Initializing the arrays and variables
 c
 c** To calculate the values for <vj|dV/dP(k)|vj>
 c   we must first determine the wave equation for the vj state.
-      muFCT= 16.857629205d0/ZMU
+      muFCT= 16.857629206d0/ZMU
       BFCT= RH(ISTATE)*RH(ISTATE)/muFCT
       JFCT= DBLE(JROT*(JROT+1))
+      JFCTL= JFCT-IOMEG(ISTATE)**2
       DO  J= 1,HPARMX
           DEDPK(J)= 0.d0
           ENDDO
@@ -533,19 +579,34 @@ c   we must first determine the wave equation for the vj state.
 c** If using band constants for this state ....
       IF(PSEL(ISTATE).EQ.-1) THEN
           IF(NBC(KVLEV,IISTP,ISTATE).GT.0) THEN
-               I= BCPARI(KVLEV,IISTP,ISTATE)
-               DEDPK(I)= 1.d0
-               EO= ZBC(KVLEV,0,IISTP,ISTATE)
-               JFCTP= JFCT
-               IF(NBC(KVLEV,IISTP,ISTATE).GT.1) THEN
-                   DO  J= 2, NBC(KVLEV,IISTP,ISTATE)
-                       I= I+ 1
-                       DEDPK(I)= JFCTP
-                       EO= EO+ ZBC(KVLEV,J-1,IISTP,ISTATE)*JFCTP
-                       JFCTP= JFCTP*JFCT 
-                       ENDDO
-                   ENDIF
-               ENDIF
+              I= BCPARI(KVLEV,IISTP,ISTATE)
+              DEDPK(I)= 1.d0
+              EO= ZBC(KVLEV,0,IISTP,ISTATE)
+              JFCTP= JFCTL
+              IF(NBC(KVLEV,IISTP,ISTATE).GT.1) THEN
+                  DO  J= 2, NBC(KVLEV,IISTP,ISTATE)
+                      I= I+ 1
+                      DEDPK(I)= JFCTP
+                      EO= EO+ ZBC(KVLEV,J-1,IISTP,ISTATE)*JFCTP
+                      JFCTP= JFCTP*JFCTL 
+                      ENDDO
+                  IF(NQC(KVLEV,IISTP,ISTATE).GT.0) THEN
+                      JFCTP= JFCT*0.5d0*(efPARITY-efREF(ISTATE))
+                      IF(IOMEG(ISTATE).EQ.-1) THEN
+                          JFCTL= JFCT
+                          IF(efPARITY.GT.0) JFCTP= 0.5d0*JROT
+                          IF(efPARITY.EQ.0) JFCTP=  0.d0
+                          IF(efPARITY.LT.0) JFCTP= -0.5d0*(JROT+1)
+                          ENDIF
+                      DO  J= 1, NQC(KVLEV,IISTP,ISTATE)
+                          I= I+ 1
+                          DEDPK(I)= JFCTP
+                          EO= EO+ ZQC(KVLEV,J-1,IISTP,ISTATE)*JFCTP
+                          JFCTP= JFCTP*JFCTL 
+                          ENDDO
+                      ENDIF 
+                  ENDIF
+              ENDIF
           RETURN
           ENDIF
 c** Calculating the trial energy value from the band constants
@@ -558,7 +619,6 @@ c** Calculating the trial energy value from the band constants
               IF(IOMEG(ISTATE).EQ.-1) JFCTP= JFCTP - 2**I
               DEROT= ZK(KVLEV,I,IISTP,ISTATE) * JFCTP
 c... if centrifugal term bigger than previous one - truncate summation
-              IF(DABS(DEROT).GT.DABS(DEROTB)) GOTO 4
               ETRY= ETRY + DEROT
               ENDDO
     4     ENDIF
@@ -569,9 +629,9 @@ c** For Lambda doubling, prepare rotational/mass factors
           ENDIF
       IF(IOMEG(ISTATE).EQ.-1) THEN
 c** For doublet Sigma splitting, prepare rotational/mass factors
-          IF(efPARITY.GT.0) JFCTDBL=  0.5d0*DBLE(JROT)*muFCT
+          IF(efPARITY.GT.0) JFCTDBL=  0.5d0*JROT*muFCT
           IF(efPARITY.EQ.0) JFCTDBL=  0.d0
-          IF(efPARITY.LT.0) JFCTDBL= -0.5d0*DBLE(JROT+1)*muFCT
+          IF(efPARITY.LT.0) JFCTDBL= -0.5d0*(JROT+1)*muFCT
           ENDIF
 c
 c** Generating potential function including centrifugal, adiabatic BOB,
@@ -643,7 +703,14 @@ c***********************************************************************
 c** If the calculated wavefunction is still for the wrong vibrational
 c   level, then write out a warning and skip the calculation of the
 c   partial derivatives (hence setting them to zero).
-          WRITE(6,610) KVLEV,JROT,KV
+          fcount= fcount+1
+          WRITE(6,610) fcount,KVLEV,JROT,KV
+          IF(fcount.ge.1000) THEN
+              WRITE(6,612)
+  612 FORMAT(/' *** Excessive SCECOR failures, so stop and figure out wh
+     1y *** ' //)
+              STOP
+              ENDIF        
 c.. eigenvalue of -9.9d9 indicates that eigenvalue search failed completely
           EO= -9.9d9
           IWR= 0
@@ -751,8 +818,8 @@ c ... collect contributions of BOB terms to derivatives w.r.t. Re
           ENDIF
       RETURN
 c-----------------------------------------------------------------------
-  610 FORMAT(' *** SCECOR fails. Seeking   v=',i3,', J=',i3,
-     1   ';  Found  v=',I3)
+  610 FORMAT(' *** SCECOR failed',I4,' times,   Currently Seeking   v=',
+     1   i3,', J=',i3,';  Found  v=',I3)
       END
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 
@@ -790,7 +857,7 @@ c ** Phase integral and partial derivative arrays ....
 *----------------------------------------------------------------------*
 *** Begin by calling subroutine locateTP to find the three turning 
 *   points of the quasi-bound level 
-      FCTOR= DSQRT(ZMU/16.857629205d0)
+      FCTOR= DSQRT(ZMU/16.857629206d0)
       DO IPV= POTPARI(ISTATE),HPARF(ISTATE)
           dWdPk(IPV)= 0.0d0
           ENDDO 
@@ -928,7 +995,8 @@ c ... obtain potential function value at new turning point estimate
               RR(1)= R1
               RM2(1)= 1.0d0/R1**2
 c ... for fixed pointwise potential, interpolate for potential value
-              CALL PREPOTT(0,AN(1),AN(2),MN(1,1),MN(2,1),1,VLIMT,RR,VV)
+              CALL PREPOTT(0,AN(1),AN(2),MN(1,1),MN(2,1),1,
+     1                                  VLIMT,RR,VV,Re(ISTATE))
               Vmid= VV(1) 
             ENDIF
           EMV= EO- VMID
@@ -973,13 +1041,14 @@ c ... test to see if by accident, mesh point IS exactly  R2
 c ... interpolate linearly between the two most recent estimates
           R2= RTB - (RTB-RTBB)*EMVB/(EMVB-EMVBB)
           IF(PSEL(ISTATE).GT.0) THEN
-c ... obtain potential function value at new turning point estimate
+c ... obtain PEC value at new turning point estimate: no deriv or BOB neeeded
               CALL VGEN(ISTATE,R2,Vmid,bMi,IDAT)
             ELSE
               RR(1)= R2
               RM2(1)= 1.0d0/R2**2
 c ... for fixed pointwise potential, interpolate for potential value
-              CALL PREPOTT(0,AN(1),AN(2),MN(1,1),MN(2,1),1,VLIMT,RR,VV)
+              CALL PREPOTT(0,AN(1),AN(2),MN(1,1),MN(2,1),1,
+     1                                      VLIMT,RR,VV,Re(ISTATE))
               Vmid= VV(1)
             ENDIF
           EMV= EO- VMID
@@ -1026,7 +1095,8 @@ c ... obtain potential function value at new turning point estimate
               RR(1)= R3
               RM2(1)= 1.0d0/R3**2
 c ... for fixed pointwise potential, interpolate for potential value
-              CALL PREPOTT(0,AN(1),AN(2),MN(1,1),MN(2,1),1,VLIMT,RR,VV)
+              CALL PREPOTT(0,AN(1),AN(2),MN(1,1),MN(2,1),1,
+     1                                      VLIMT,RR,VV,Re(ISTATE))
               Vmid= VV(1)
             ENDIF
           EMV= EO- VMID
@@ -1088,10 +1158,11 @@ c** Type statements & common block for data
       INTEGER i,IPV,ISTATE, k,k1,kmx,M,IDAT
 c** M  is the number of quadrature mesh points
       PARAMETER (M=21)
-c
-      REAL*8 dVdPk(HPARMX)
-      COMMON /dVdPkBLK/dVdPk
-c
+c** Common block for partial derivatives of potential at the one distance RDIST
+c   and HPP derivatives for uncertainties
+      REAL*8 dVdPk(HPARMX),dDe(0:NbetaMX),dDedRe
+      COMMON /dVdPkBLK/dVdPk,dDe,dDedRe
+c=======================================================================
       REAL*8 Ri,Ro,EO,Fzt,RDIST,VDIST,BETADIST,EMinusV,
      1  Jntegral(0:HPARMX,-1:1),DEDPK(HPARMX)
 c

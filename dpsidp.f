@@ -21,6 +21,7 @@ c               RH    is the integration stepsize (in units [Ang])
 c               V(i)  is the effective potential (including centrifugal
 c                     term if calculation performed at  J > 0) in 
 c                     'internal' units, including the factor  RH**2/BvWN
+c** return:   dBdPk  partial deriv of Bv w.r.t. param Pk ???
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c               COPYRIGHT 2013  by  Robert J. Le Roy              +
 c   Dept. of Chemistry, Univ. of Waterloo, Waterloo, Ontario, Canada   +
@@ -29,7 +30,7 @@ c      of it without the express written permission of the author.     +
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c  Based of subdoutine CDJOEL for calculating centrifugal distortion 
 c  constants using approach of J. Tellinghuisen [J.Mol.Spec.122,455(1987]
-c                        Version of 04/18/2013
+c                        Version of 04/18/2013  ?? did it ever work ??
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** Dimension:  potential arrays  and  vib. level arrays.
       INTEGER I,ISTATE,IISTP,M,M1,M2,NBEG,NEND,NDIMR
@@ -147,7 +148,7 @@ c** Find the rest of the overlap with zero-th order solution ...
 c ... Now ... project out contribution of zero'th-order part of solution
           PI = P(I) - OV*P0
           PIF = PI*dVdPk(I)
-c** Now - accumulate integrals for Bv and dBv/dPk & orthogonsity test
+c** Now - accumulate integrals for Bv and dBv/dPk & orthogonality test
           WF1(I) = PI
           gCENT= (1.0d0 + ZMTA(IISTP,ISTATE)*TAR(I,ISTATE)
      1                         + ZMTB(IISTP,ISTATE)*TBR(I,ISTATE))*RM2

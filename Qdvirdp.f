@@ -25,7 +25,7 @@ c
        REAL*8, PARAMETER :: k_boltz=1.3806488D-23, NA=6.02214129D23,
      1  h = 6.62606957D-34, c = 2.99792458D10, k_cm = k_boltz/(h*c),
      2  h_cm = 1.d0/c, pi = 3.14159265358979323846, amu=1.660538921D-27,
-     3  Cu= 16.857629205D0
+     3  Cu= 16.857629206D0
 c* Common block data for quadrature weights and points
       data x/0.960289856497536d0, 0.796666477413627d0,
      1       0.525532409916329d0, 0.183434642495650d0/,

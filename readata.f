@@ -1,11 +1,10 @@
 c***********************************************************************
-      SUBROUTINE READATA(NSTATES,PASok,UCUTOFF,JTRUNC,EFSEL,VMIN,VMAX,
-     1                                            NDAT,NOWIDTHS,PRINP)
+      SUBROUTINE READATA(PASok,UCUTOFF,NDAT,NOWIDTHS,PRINP)
 c***********************************************************************
 c** Subroutine to read, do book-keeping for, and print summary of
 c  experimental data used in fits to spectroscopic data for one or more
 c  electronic states and one or more isotopomers. 
-c             ********* Version of 14 July 2011 *********
+c             ********* Version of 9 July 2014 *********
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c++  COPYRIGHT 1997-2011 by  Robert J. Le Roy & Dominique R.T. Appadoo +
 c   Dept. of Chemistry, Univ. of Waterloo, Waterloo, Ontario, Canada   +
@@ -59,20 +58,28 @@ c** This subroutine reads in the experimental data on channel-4
 c-----------------------------------------------------------------------
       INCLUDE 'arrsizes.h'
 c
-      INTEGER I,IBB,NTRANS,COUNT,IBAND,JMAX(NPARMX),JMIN(NPARMX),
+      INTEGER I,IBN,COUNT,IBAND,
      1  VMX(NSTATEMX),ISOT,NBND,ESP,ESPP,ISTATE,ISTATEE,MN1,MN2,PRINP,
      2  FSOMIT,VMAXesp,VMINesp,VMAXespp,VMINespp,JTRUNCesp,JTRUNCespp
-      INTEGER NSTATES,NOWIDTHS,JTRUNC(NSTATEMX),EFSEL(NSTATEMX),
-     1 VMIN(NSTATEMX,NISTPMX),VMAX(NSTATEMX,NISTPMX),
-     2 NDAT(0:NVIBMX,NISTPMX,NSTATEMX),PASok(NSTATES)
+      INTEGER NOWIDTHS,NDAT(0:NVIBMX,NISTPMX,NSTATEMX),PASok(NSTATES)
       REAL*8 UCUTOFF,UMIN,TOTUFREQ
       CHARACTER*3 NEF(-1:1)
-      CHARACTER*2 LABLP,LABLPP
+      CHARACTER*3 LABLP,LABLPP
+      CHARACTER*2 OLDSLABL(-5:0)
       INCLUDE 'BLKISOT.h'
       INCLUDE 'BLKDATA.h'
+      INCLUDE 'BLKPARAM.h'
       INCLUDE 'BLKTYPE.h'
 c
       DATA NEF/'  f','   ','  e'/
+c-----------------------------------------------------------------------
+c** maintain compatibility with old labeling method      
+      OLDSLABL(-5)='VS'
+      OLDSLABL(-4)='VR'
+      OLDSLABL(-3)='VV'
+      OLDSLABL(-2)='WI'
+      OLDSLABL(-1)='PA'
+      OLDSLABL(0)='FS'
 c-----------------------------------------------------------------------
       WRITE(6,603) UCUTOFF 
       DO  ISTATE= 1,NSTATES
@@ -138,37 +145,46 @@ c   identifies the type of data in the 'band' or data-group (see below).
 c
 c** LABLP = LABLPP  and  VP = VPP  for a microwave band
 c   LABLP = LABLPP  and  VP.ne.VPP  for an infrared band 
-c   LABLP = 'FS'  identifies this data group/band as a fluorescence 
+c   LABLP = 'FLS'  identifies this data group/band as a fluorescence 
 c           series from a single emitting level into vibrational levels
 c           of electronic state LABLPP.  In this case: VP is the quantum
 c           number v' for the emitting level, while VPP is actually the 
 c           rotational quantum number J' for the emitting level and JP
 c           [see below] the lower state vibrational quantum number v".
-c   LABLP = 'PA'  identifies this data group/band as a set of binding
+c   LABLP = 'PAS'  identifies this data group/band as a set of binding
 c        energies [D-E(v,J,p)] for a given state.  Data Labels as for 'FS'
 c   LABLP = 'BV'  identifies this data group/band as a set of Bv values
 c           for electronic state LABLPP.  In this case, parameters  VP
 c           & VPP are dummy variables, as are EFP, JPP and EFPP [see
 c           below],  JP is actually the vibrational quantum number v",
 c           FREQ the Bv value & UFREQ its uncertainty
-c   LABLP = 'WI'  identifies this data group/band as a set of tunneling 
+c   LABLP = 'WID'  identifies this data group/band as a set of tunneling 
 c           predissociation widths for electronic state LABLPP.  In this
 c           case, parameters VP, VPP and EFP are dummy variables, while
 c           the predissociating level is identified as: v"=JP, J"=JPP,
 c           and parity p"=EFPP.
-c   LABLP = 'VV' to identify this as a set of potential fx. values 
+c   LABLP = 'VVV' to identify this as a set of potential fx. values 
 c           e.g., ab initio values for the high repulsive wall. In this
 c            case, parameters VP, VPP are dummy variables.
-c   LABLP = 'VR' identifies this data group/band as a set of virial 
+c   LABLP = 'VIR' identifies this data group/band as a set of virial 
 c           coefficients for electronic state LABLPP.  In this case, 
 c           parameters VP, VPP are dummy variables.
 c** STOP reading when run out of bands OR when read-in VPP is negative   
 c-----------------------------------------------------------------------
+      IF((PRINP.EQ.2).OR.(PRINP.EQ.-2)) THEN
+      READ(4,*,END=40) VP(IBAND), VPP(IBAND), LABLP, LABLPP, MN1, MN2,
+     1                 BANDNAME(IBAND)     
+      ELSE
       READ(4,*,END=40) VP(IBAND), VPP(IBAND), LABLP, LABLPP, MN1, MN2
+      ENDIF
 c-----------------------------------------------------------------------
       IF(VP(IBAND).LT.0) GO TO 40
       IEP(IBAND)= -99
       IEPP(IBAND)= -99
+      DO  I= -5, 0
+          IF(LABLP.EQ.OLDSLABL(I)) LABLP= SLABL(I)
+          IF(LABLPP.EQ.OLDSLABL(I)) LABLPP= SLABL(I)
+          ENDDO
       DO  I= -5, NSTATES
           IF(LABLP.EQ.SLABL(I)) IEP(IBAND)= I
           IF(LABLPP.EQ.SLABL(I)) IEPP(IBAND)= I
@@ -192,6 +208,7 @@ c----------------------------------------------------------------------
           YUNC(COUNT)= UFREQ(COUNT)
           IF(TEMP(COUNT).GT.0.d0) THEN
 c ... a negative input distance implies end of potential energy data set
+              IF(ISOT.LE.0) GOTO 12     !!! Was missing
               IB(COUNT)= IBAND
               COUNT= COUNT+1
               GOTO 12
@@ -209,13 +226,13 @@ c----------------------------------------------------------------------
 c----------------------------------------------------------------------
           YUNC(COUNT)= UFREQ(COUNT)
           IF(TEMP(COUNT).GT.0.d0) THEN
-c ... a negative input temperature implies end of virial data set
+c ... negative input 'temperature' implies end of virial/PE data set
               IF(ISOT.LE.0) GOTO 14
 c ... if this isotope not considered in the fit, ignore this datum
               IB(COUNT)= IBAND
               COUNT= COUNT+1
               GOTO 14
-            ELSE
+            ELSE       !! for 'TEMP'.LE.0
               GOTO 18
             ENDIF
           ENDIF
@@ -229,7 +246,7 @@ c... now ... for the case of spectroscopic data ...
           WRITE(6,640) COUNT,NDATAMX
           STOP
           ENDIF
-      NTRANS= 0
+      NTRANS(IBAND)= 0
       IFIRST(IBAND)= COUNT
       VMAXespp= 0
       VMINespp= 0
@@ -376,19 +393,19 @@ c
 c** Tidy up at end of reading for a given band
    18 COUNT= COUNT-1
       ILAST(IBAND)= COUNT 
-      NTRANS= ILAST(IBAND)-IFIRST(IBAND)+1
-      IF(NTRANS.GT.0) THEN
+      NTRANS(IBAND)= ILAST(IBAND)-IFIRST(IBAND)+1
+      IF(NTRANS(IBAND).GT.0) THEN
 c** Treat PAS data as Fluorescence series unless  PASok > 0
           IF((IEP(IBAND).EQ.-1).AND.(PASok(IEPP(IBAND)).LE.0)) 
      1                                                    IEP(IBAND)=0
-          IF((NTRANS.EQ.1).AND.(LABLP.EQ.'FS')) THEN
+          IF((NTRANS(IBAND).EQ.1).AND.(LABLP.EQ.'FS')) THEN
 c** Ignore any fluorescence series consisting of only one datum
               COUNT= COUNT-1
               IBAND= IBAND-1
               FSOMIT= FSOMIT+1
               GOTO 10
               ENDIF
-          AVEUFREQ(IBAND)= TOTUFREQ/NTRANS
+          AVEUFREQ(IBAND)= TOTUFREQ/NTRANS(IBAND)
           NBANDS(ISTP(IBAND))= NBANDS(ISTP(IBAND))+1
         ELSE
           IBAND= IBAND-1
@@ -406,14 +423,9 @@ c ...  NDF(IBAND)  if the FS number associated with band  IBAND
           NFS(IBAND)= NFSTOT
           NBANDFS(ISOT,ESPP)= NBANDFS(ISOT,ESPP)+ 1
           NBND= NBANDFS(ISOT,ESPP)
-          NTRANSFS(ISOT,ESPP)= NTRANSFS(ISOT,ESPP)+NTRANS
+          NTRANSFS(ISOT,ESPP)= NTRANSFS(ISOT,ESPP)+NTRANS(IBAND)
 c ... and then set up labels/ranges/properties for each band
-          YPR(ISOT,ESPP,1,1,NBND)= VP(IBAND)
-          YPR(ISOT,ESPP,1,2,NBND)= VPP(IBAND)
-          YPR(ISOT,ESPP,1,3,NBND)= NTRANS
-          YPR(ISOT,ESPP,1,4,NBND)= IBAND
-          YPR(ISOT,ESPP,1,5,NBND)= JMIN(IBAND)
-          YPR(ISOT,ESPP,1,6,NBND)= JMAX(IBAND)
+          IBB(ISOT,ESPP,1,NBND)= IBAND
           IFXFS(NFSTOT)= 0
           IF((NFSTOT.GT.1).AND.(FSsame.GT.0)) THEN
 c** Finally - If desired (FSsame > 0) check to see if this band has the
@@ -442,14 +454,10 @@ c ... count bands and transitions in visible (electronic) spectrum
           NBANDEL(ISOT,ESP,ESPP)= NBANDEL(ISOT,ESP,ESPP)+ 1
           NBANDVIS(ISOT,ESPP)= NBANDVIS(ISOT,ESPP)+ 1
           NBND= NBANDVIS(ISOT,ESPP)
-          NTRANSVIS(ISOT,ESP,ESPP)= NTRANSVIS(ISOT,ESP,ESPP)+NTRANS
+          NTRANSVIS(ISOT,ESP,ESPP)=
+     1                     NTRANSVIS(ISOT,ESP,ESPP)+NTRANS(IBAND)
 c ... and then set up labels/ranges/properties for each of them
-          YPR(ISOT,ESPP,2,1,NBND)= VPP(IBAND)
-          YPR(ISOT,ESPP,2,2,NBND)= VP(IBAND)
-          YPR(ISOT,ESPP,2,3,NBND)= NTRANS
-          YPR(ISOT,ESPP,2,4,NBND)= IBAND
-          YPR(ISOT,ESPP,2,5,NBND)= JMIN(IBAND)
-          YPR(ISOT,ESPP,2,6,NBND)= JMAX(IBAND)
+          IBB(ISOT,ESPP,2,NBND)= IBAND
           ENDIF 
 c
       IF((ESP.EQ.ESPP).AND.(VP(IBAND).NE.VPP(IBAND))) THEN
@@ -457,14 +465,9 @@ c** For an Infrared band of electronic state  s=ESPP=ESP
 c** First cumulatively count the number of IR bands & transitions
           NBANDIR(ISOT,ESPP)= NBANDIR(ISOT,ESPP)+1
           NBND= NBANDIR(ISOT,ESPP)
-          NTRANSIR(ISOT,ESPP)= NTRANSIR(ISOT,ESPP)+NTRANS 
+          NTRANSIR(ISOT,ESPP)= NTRANSIR(ISOT,ESPP)+NTRANS(IBAND) 
 c ... and then set up labels/ranges/properties for each of them
-          YPR(ISOT,ESPP,3,1,NBND)= VPP(IBAND)
-          YPR(ISOT,ESPP,3,2,NBND)= VP(IBAND)
-          YPR(ISOT,ESPP,3,3,NBND)= NTRANS
-          YPR(ISOT,ESPP,3,4,NBND)= IBAND
-          YPR(ISOT,ESPP,3,5,NBND)= JMIN(IBAND)
-          YPR(ISOT,ESPP,3,6,NBND)= JMAX(IBAND)
+          IBB(ISOT,ESPP,3,NBND)= IBAND
           ENDIF
 c
       IF((ESP.EQ.ESPP).AND.(VP(IBAND).EQ.VPP(IBAND))) THEN
@@ -472,63 +475,46 @@ c** For Microwave transitions in electronic state  s=ESPP=ESP
 c** First cumulatively count the number of MW bands & transitions
           NBANDMW(ISOT,ESPP)= NBANDMW(ISOT,ESPP)+1
           NBND= NBANDMW(ISOT,ESPP)
-          NTRANSMW(ISOT,ESPP)= NTRANSMW(ISOT,ESPP)+NTRANS
+          NTRANSMW(ISOT,ESPP)= NTRANSMW(ISOT,ESPP)+NTRANS(IBAND)
 c ... and then set up labels/ranges/properties for each of them
-          YPR(ISOT,ESPP,4,1,NBND)= VPP(IBAND)
-          YPR(ISOT,ESPP,4,2,NBND)= VP(IBAND)
-          YPR(ISOT,ESPP,4,3,NBND)= NTRANS
-          YPR(ISOT,ESPP,4,4,NBND)= IBAND
-          YPR(ISOT,ESPP,4,5,NBND)= JMIN(IBAND)
-          YPR(ISOT,ESPP,4,6,NBND)= JMAX(IBAND)
+          IBB(ISOT,ESPP,4,NBND)= IBAND
           ENDIF
 c
-c** NOTE ... in YPR array a last index counts bands of this type for 
+c** NOTE ... in IBB array a last index counts bands of this type for 
 c  this isotopomer of this electronic state.  Expect to find all 
 c  potential fx. values, virial coeficients, Tunneling Widths or PAS 
 c  binding energies in a single group.
       IF(ESP.EQ.-4) THEN
 c** Data are Virial Coefficients for electronic state IEPP= ESPP
-          NVIRIAL(ISOT,ESPP)= NTRANS
-          YPR(ISOT,ESPP,8,3,1)= NTRANS
-          YPR(ISOT,ESPP,8,4,1)= IBAND
-          YPR(ISOT,ESPP,8,5,1)= JMIN(IBAND)
-          YPR(ISOT,ESPP,8,6,1)= JMAX(IBAND)
+          NVIRIAL(ISOT,ESPP)= NTRANS(IBAND)
+          IBB(ISOT,ESPP,8,1)= IBAND
           ENDIF
 c
       IF(ESP.EQ.-3) THEN
 c** Data are not transition energies, but rather values of the potential
 c  function at particular distances for electronic state s=IEPP  
           WRITE(6,612) ESPP,ISOT
-          NVVPP(ISOT,ESPP)= NTRANS
-          YPR(ISOT,ESPP,5,3,1)= NTRANS
-          YPR(ISOT,ESPP,5,4,1)= IBAND
-          YPR(ISOT,ESPP,5,5,1)= JMIN(IBAND)
-          YPR(ISOT,ESPP,5,6,1)= JMAX(IBAND)
+          NVVPP(ISOT,ESPP)= NTRANS(IBAND)
+          IBB(ISOT,ESPP,5,1)= IBAND
           ENDIF
 c
       IF(ESP.EQ.-2) THEN
 c** Data are tunneling predissociation linewidths (in cm-1) for levels
 c  of electronic state IEPP=ESPP
-ccc       IF((NWIDTH(ISOT,ESPP).GT.0).AND.(NTRANS.GT.0)) THEN
+ccc       IF((NWIDTH(ISOT,ESPP).GT.0).AND.(NTRANS(IBAND).GT.0)) THEN
               WRITE(6,626) ESPP,ISOT
 ccc           STOP
 ccc           ENDIF
-          NWIDTH(ISOT,ESPP)= NTRANS
-          YPR(ISOT,ESPP,6,3,1)= NTRANS
-          YPR(ISOT,ESPP,6,4,1)= IBAND
-          YPR(ISOT,ESPP,6,5,1)= JMIN(IBAND)
-          YPR(ISOT,ESPP,6,6,1)= JMAX(IBAND)
+          NWIDTH(ISOT,ESPP)= NTRANS(IBAND)
+          IBB(ISOT,ESPP,6,1)= IBAND
           ENDIF
 c
       IF(ESP.EQ.-1) THEN
 c** Data are PhotoAssociation Binding Energies (in cm-1) for levels
 c  of electronic state IEPP=ESPP
           WRITE(6,636) LABLPP,ISOT
-          NEBPAS(ISOT,ESPP)= NTRANS
-          YPR(ISOT,ESPP,7,3,1)= NTRANS
-          YPR(ISOT,ESPP,7,4,1)= IBAND
-          YPR(ISOT,ESPP,7,5,1)= JMIN(IBAND)
-          YPR(ISOT,ESPP,7,6,1)= JMAX(IBAND)
+          NEBPAS(ISOT,ESPP)= NTRANS(IBAND)
+          IBB(ISOT,ESPP,7,1)= IBAND
           ENDIF
 c
 c** Now return to read the next band
@@ -557,13 +543,9 @@ c** Book-keeping for Micowave data
           WRITE(6,604) NTRANSMW(ISOT,ISTATE),SLABL(ISTATE),(NAME(I),
      1                          MN(I,ISOT),I=1,2),NBANDMW(ISOT,ISTATE)
           DO  I= 1,NBANDMW(ISOT,ISTATE)
-              IBB= YPR(ISOT,ISTATE,4,4,I)
-              WRITE(6,606) YPR(ISOT,ISTATE,4,2,I),
-     1                     YPR(ISOT,ISTATE,4,1,I),
-     2                  YPR(ISOT,ISTATE,4,3,I),YPR(ISOT,ISTATE,4,5,I),
-     3                  YPR(ISOT,ISTATE,4,6,I), 
-     3                  AVEUFREQ(YPR(ISOT,ISTATE,4,4,I)),
-     4                  MAXUFREQ(YPR(ISOT,ISTATE,4,4,I))
+          IBN=IBB(ISOT,ISTATE,4,I)
+              WRITE(6,606) VP(IBN),VPP(IBN),NTRANS(IBN),JMIN(IBN),
+     1               JMAX(IBN),AVEUFREQ(IBN),MAXUFREQ(IBN)
               ENDDO
           ENDIF
 c
@@ -572,13 +554,9 @@ c** Book-keeping for Infrared data
           WRITE(6,608) NTRANSIR(ISOT,ISTATE),SLABL(ISTATE),(NAME(I),
      1                          MN(I,ISOT),I=1,2),NBANDIR(ISOT,ISTATE)
           DO  I= 1,NBANDIR(ISOT,ISTATE)
-              IBB= YPR(ISOT,ISTATE,3,4,I)
-              WRITE(6,606) YPR(ISOT,ISTATE,3,2,I),
-     1                     YPR(ISOT,ISTATE,3,1,I),
-     2                  YPR(ISOT,ISTATE,3,3,I),YPR(ISOT,ISTATE,3,5,I),
-     3                  YPR(ISOT,ISTATE,3,6,I), 
-     4                  AVEUFREQ(YPR(ISOT,ISTATE,3,4,I)),
-     5                  MAXUFREQ(YPR(ISOT,ISTATE,3,4,I))
+          IBN=IBB(ISOT,ISTATE,3,I)
+              WRITE(6,606) VP(IBN),VPP(IBN),NTRANS(IBN),
+     1                  JMIN(IBN),JMAX(IBN),AVEUFREQ(IBN),MAXUFREQ(IBN)
               ENDDO
           ENDIF
 c
@@ -591,14 +569,10 @@ c ... for ISTATEE{upper}-ISTATE{lower} electronic vibrational bands
      1         (NAME(I),MN(I,ISOT),I=1,2),SLABL(ISTATEE),SLABL(ISTATE),
      2                                    NBANDEL(ISOT,ISTATEE,ISTATE)
               DO  I= 1,NBANDVIS(ISOT,ISTATE)
-                  IBB= YPR(ISOT,ISTATE,2,4,I)
-                  IF(IEP(IBB).EQ.ISTATEE) THEN
-                      WRITE(6,606) YPR(ISOT,ISTATE,2,2,I),
-     1                            YPR(ISOT,ISTATE,2,1,I),
-     2                  YPR(ISOT,ISTATE,2,3,I),YPR(ISOT,ISTATE,2,5,I),
-     3                  YPR(ISOT,ISTATE,2,6,I), 
-     4                  AVEUFREQ(YPR(ISOT,ISTATE,2,4,I)),
-     5                  MAXUFREQ(YPR(ISOT,ISTATE,2,4,I))
+              IBN=IBB(ISOT,ISTATE,2,I)
+                  IF(IEP(IBN).EQ.ISTATEE) THEN
+                      WRITE(6,606) VP(IBN),VPP(IBN),NTRANS(IBN),
+     1                  JMIN(IBN),JMAX(IBN),AVEUFREQ(IBN),MAXUFREQ(IBN)
                       ENDIF
                   ENDDO
               ENDIF
@@ -608,47 +582,38 @@ c** Book-keeping for Fluorescence data
           WRITE(6,614) NTRANSFS(ISOT,ISTATE),SLABL(ISTATE),(NAME(I),
      1                          MN(I,ISOT),I=1,2),NBANDFS(ISOT,ISTATE)
           DO  I= 1,NBANDFS(ISOT,ISTATE)
-              IBB= YPR(ISOT,ISTATE,1,4,I)
-              WRITE(6,616) YPR(ISOT,ISTATE,1,1,I),
-     1                   YPR(ISOT,ISTATE,1,2,I),NEF(EFP(IFIRST(IBB))),
-     2                  YPR(ISOT,ISTATE,1,3,I),YPR(ISOT,ISTATE,1,5,I),
-     3                  YPR(ISOT,ISTATE,1,6,I), 
-     4                  AVEUFREQ(YPR(ISOT,ISTATE,1,4,I)),
-     5                  MAXUFREQ(YPR(ISOT,ISTATE,1,4,I))
+          IBN = IBB(ISOT,ISTATE,1,I)
+              WRITE(6,616) VP(IBN),VPP(IBN),
+     1                  NEF(EFP(IFIRST(IBB(ISOT,ISTATE,1,I)))),
+     2     NTRANS(IBN),JMIN(IBN),JMAX(IBN),AVEUFREQ(IBN),MAXUFREQ(IBN)
               ENDDO
           ENDIF
       IF(NVVPP(ISOT,ISTATE).GT.0)THEN
 c** Book-keeping for potential function values as data ....
           WRITE(6,618) NVVPP(ISOT,ISTATE),SLABL(ISTATE),(NAME(I),
      1                                               MN(I,ISOT),I=1,2)
-          IBB= YPR(ISOT,ISTATE,5,4,1)
-          WRITE(6,620) YPR(ISOT,ISTATE,5,3,1),YPR(ISOT,ISTATE,5,5,1),
-     1       YPR(ISOT,ISTATE,5,6,1),AVEUFREQ(YPR(ISOT,ISTATE,5,4,1)),
-     2                               MAXUFREQ(YPR(ISOT,ISTATE,5,4,1))
+          IBN=IBB(ISOT,ISTATE,5,1)
+          WRITE(6,620) NTRANS(IBN),JMIN(IBN),JMAX(IBN),AVEUFREQ(IBN),
+     2                               MAXUFREQ(IBN)
           ENDIF
       IF(NWIDTH(ISOT,ISTATE).GT.0) THEN
 c** Book-keeping for  Tunneling Width  data
           WRITE(6,628) NWIDTH(ISOT,ISTATE),SLABL(ISTATE),(NAME(I),
      1                                               MN(I,ISOT),I=1,2)
-          IBB= YPR(ISOT,ISTATE,6,4,1)
-          WRITE(6,630) YPR(ISOT,ISTATE,6,3,1),
-     1                  YPR(ISOT,ISTATE,6,5,1),YPR(ISOT,ISTATE,6,6,1),
-     2                               AVEUFREQ(YPR(ISOT,ISTATE,6,4,1)),
-     3                                MAXUFREQ(YPR(ISOT,ISTATE,6,4,1))
+          IBN=IBB(ISOT,ISTATE,6,1)
+          WRITE(6,630) NTRANS(IBN),JMIN(IBN),JMAX(IBN),AVEUFREQ(IBN),
+     3                                MAXUFREQ(IBN)
           ENDIF
       IF(NEBPAS(ISOT,ISTATE).GT.0) THEN
 c** Book-keeping for  PAS Binding Energy  data
           WRITE(6,632) NEBPAS(ISOT,ISTATE),SLABL(ISTATE),(NAME(I),
      1                                               MN(I,ISOT),I=1,2)
-          IBB= YPR(ISOT,ISTATE,6,4,1)
-          WRITE(6,630) YPR(ISOT,ISTATE,7,3,1),
-     1                  YPR(ISOT,ISTATE,7,5,1),YPR(ISOT,ISTATE,7,6,1),
-     2                               AVEUFREQ(YPR(ISOT,ISTATE,7,4,1)),
-     3                                MAXUFREQ(YPR(ISOT,ISTATE,7,4,1))
+          IBN=IBB(ISOT,ISTATE,7,1)
+          WRITE(6,630) NTRANS(IBN),JMIN(IBN),JMAX(IBN),AVEUFREQ(IBN),
+     3                                MAXUFREQ(IBN)
           ENDIF
       IF(NVIRIAL(ISOT,ISTATE).GT.0) THEN
 c** Book-keeping for Virial data
-          IBB= YPR(ISOT,ESPP,8,4,1)
           WRITE(6,642) NVIRIAL(ISOT,ISTATE), SLABL(ISTATE), 
      1                                      (NAME(I),MN(I,ISOT),I=1,2)
           ENDIF
@@ -665,17 +630,17 @@ c** If NISTP > 1, return to print data summaries for other isotopomers
   601 FORMAT(23x,'or with',A3,'-parity.')
   603 FORMAT(/' Neglect data with:  Uncertainties > UCUTOFF=',1PD10.2,
      1  ' (cm-1)')
-  605 FORMAT(7x,'and State ',A2,' data with  J < JTRUNC=',I4)
-  607 FORMAT(7x,'and State ',A2,' data with  J > JTRUNC=',I4)
+  605 FORMAT(7x,'and State ',A3,' data with  J < JTRUNC=',I4)
+  607 FORMAT(7x,'and State ',A3,' data with  J > JTRUNC=',I4)
   611 FORMAT(29x,'or  v  outside range',i3,'  to',i4,'   for   ISOT=',
      1  i2:)
   602 FORMAT(/1x,20('===')/'  *** Input data for',i5,' bands/series of '
      1  ,A2,'(',I3,')-',A2,'(',I3,') ***'/1x,20('==='))
-  604 FORMAT(1x,28('--')/I5,' State ',A2,1x,A2,'(',I3,')-',A2,'(',I3,
+  604 FORMAT(1x,28('--')/I5,' State ',A3,1x,A2,'(',I3,')-',A2,'(',I3,
      1 ') MW transitions in',i4,' sets'/1x,28('--')/"   v'  ",
      1 'v"  #data   Jmin   Jmax  Avge.Unc.  Max.Unc.'/1x,25('--'))
   606 FORMAT(I4,I4,3I7,1x,1P2D10.1)
-  608 FORMAT(1x,32('--')/I6,' State ',A2,1x,A2,'(',I3,')-',A2,'(',I3,
+  608 FORMAT(1x,32('--')/I6,' State ',A3,1x,A2,'(',I3,')-',A2,'(',I3,
      1 ') InfraRed transitions in',I4,' bands'/1x,32('--')/
      2 "   v'  ",'v"  #data   Jmin   Jmax  Avge.Unc.  Max.Unc.'/
      3 1x,25('--'))
@@ -683,18 +648,18 @@ c** If NISTP > 1, return to print data summaries for other isotopomers
      1ceeded:'/' (IBAND=',i4,') > (NBANDMX=',i4,')   so truncate input a
      2nd TRY to continue ...')
   610 FORMAT(/1x,35('==')/I6,1x,A2,'(',I3,')-',A2,'(',i3,')  {State ',
-     1  A2,'}--{State ',A2,'} Transitions in',i4,' Bands'/1x,35('--')/
+     1  A3,'}--{State ',A3,'} Transitions in',i4,' Bands'/1x,35('--')/
      2 "   v'",'  v"  #data   Jmin   Jmax  Avge.Unc.  Max.Unc.'/
      3 1x,25('--'))
   612 FORMAT(/" NOTE that read-in potential fx. values for   ISTATE=",
      1   i2,'   ISOT=',i2/32x,' must be input as a single "band" or data
      1 group')
   614 FORMAT(1x,38('==')/I5,' Fluorescence transitions into State ',
-     1 A2,2x,A2,'(',I3,')-',A2,'(',I3,')  in',i5,' series'/
+     1 A3,2x,A2,'(',I3,')-',A2,'(',I3,')  in',i5,' series'/
      2 1x,38('==')/"   v'  j' p' ",'#data  v"min  v"max  Avge.Unc.  Max.
      3Unc.'/1x,51('-'))
   616 FORMAT(2I4,A3,I6,2I7,1x,1P2D10.1)
-  618 FORMAT(1x,65('=')/1x,I3,' State ',A2,1x,A2,'(',I3,')-',A2,'(',I3,
+  618 FORMAT(1x,65('=')/1x,I3,' State ',A3,1x,A2,'(',I3,')-',A2,'(',I3,
      1 ') potential fx values treated as independent data'/1x,24('--')/
      2 '  #values   r(min)  r(max)  Avge.Unc.   Max.Unc.'/1x,24('--'))
   620 FORMAT(I7,I9,I8,3x,1P2D11.1)
@@ -704,12 +669,12 @@ c** If NISTP > 1, return to print data summaries for other isotopomers
 cc626 FORMAT(/" *** STOP INPUT *** and put all read-in Tunneling Widths'
 cc   1  '  for   ISTATE=",i2,'   ISOT=',i2/ 
 cc   2  10x,'into one "band" or data group.')
-  628 FORMAT(1x,61('=')/1x,I3,' State ',A2,1x,A2,'(',I3,')-',A2,'(',I3,
+  628 FORMAT(1x,61('=')/1x,I3,' State ',A3,1x,A2,'(',I3,')-',A2,'(',I3,
      1 ') Tunneling Widths included as data'/
      2 1x,61('-')/'  #values   v(min)  v(max)   Avge.Unc.   Max.Unc.'/
      3 1x,24('--'))
   630 FORMAT(I7,I9,I8,2x,1P2D11.1)
-  632 FORMAT(1x,70('=')/I4,' State ',A2,1x,A2,'(',I3,')-',A2,'(',I3,
+  632 FORMAT(1x,70('=')/I4,' State ',A3,1x,A2,'(',I3,')-',A2,'(',I3,
      1 ') PAS Binding Energies included in data set'/
      2 1x,70('-')/'  #values   v(min)  v(max)   Avge.Unc.   Max.Unc.'/
      3 1x,24('--'))
@@ -718,7 +683,7 @@ cc   2  10x,'into one "band" or data group.')
      2 )
   640 FORMAT(/' *** Input Data Count reaches',i6,' which EXCEEDS ARRAY L
      1IMIT of',i6)
-  642 FORMAT(1x,70('=')/I4,' State ',A2,1x,A2,'(',I3,')-',A2,
+  642 FORMAT(1x,70('=')/I4,' State ',A3,1x,A2,'(',I3,')-',A2,
      1 '(',I3,') Virial coefficients included in data set' )
   650 FORMAT(/' Data input IGNORES',i4,' fluorescence series consisting'
      1 ,' of only  onee  line!')

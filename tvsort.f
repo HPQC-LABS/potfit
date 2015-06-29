@@ -1,5 +1,5 @@
 c***********************************************************************
-      SUBROUTINE TVSORT(ISTATE,NPTOT,VMAX,NTVALL,TVNAME)
+      SUBROUTINE TVSORT(ISTATE,NPTOT,VMAX,NTVALL,NTVSSTAT,TVNAME)
 c***********************************************************************
 c** Subroutine to sort through global data file, and for each isotopomer
 c  in state ISTATE:  (1) find the number of transitions coupled to each
@@ -21,7 +21,9 @@ c  NPTOT  is updated to include the number of term values for this state
 c  TVUP(i) & TVLW(i): if the upper and/or lower level of transition-i is
 c      to be represented by a term value, TVUP and TVLW (respectively)
 c      is the associated parameter index; otherwise they = 0.
-c  NTVALL  is the number of term value parameters for this state
+c  NTVALL  is the total number of term value parameters for this state
+c  NTVSSTAT  is the total number of term values this state associated 
+c           with only a single transition
 c  TVNAME(j)  is the alphameric name identifying term value parameter j
 c
 c** Internally
@@ -36,13 +38,14 @@ c-----------------------------------------------------------------------
 c
       INTEGER I,J,P,IBAND,ISOT,ISTATE,NPTOT,LOWEST,
      1 VMAX(NSTATEMX,NISTPMX),NLV(0:NVIBMX,0:NVIBMX,-1:1),
-     2 NTVS(NSTATEMX,NISTPMX),NTVALL(0:NSTATEMX)
+     2 NTVS(NSTATEMX,NISTPMX),NTVALL(0:NSTATEMX),NTVSSTAT
       CHARACTER*24 TVNAME(NPARMX)
 c=======================================================================
       WRITE(6,600) SLABL(ISTATE) 
       LOWEST= 1
       IF(ISTATE.GT.1) LOWEST= 0
       NTVALL(ISTATE)= 0
+      NTVSSTAT= 0
       DO  ISOT= 1, NISTP
 c** First ... zero transition counter array for this isotopomer
           DO  I= 0, VMAX(ISTATE,ISOT)
@@ -106,8 +109,6 @@ c!!                           ENDIF
                           REWIND(30)
                           WRITE(30,700) SLABL(ISTATE),I,J,P,ISOT,
      1                                                      NLV(I,J,P)
-ccc                       WRITE(31,700) SLABL(ISTATE),I,J,P,ISOT,
-ccc  1                                                      NLV(I,J,P)
                           REWIND(30)
                           READ(30,*) TVNAME(NPTOT)
 c ... reset NLV(v,J,p) as the parameter index for that term value
@@ -136,10 +137,11 @@ c     if the state is not represented by term values!).
           WRITE(6,608) NAME(1),MN(1,ISOT),NAME(2),MN(2,ISOT),
      1                              NTV(ISTATE,ISOT),NTVS(ISTATE,ISOT)
           NTVALL(ISTATE)= NTVALL(ISTATE)+ NTV(ISTATE,ISOT)
+          NTVSSTAT= NTVSSTAT+ NTVS(ISTATE,ISOT)
           ENDDO
 c
       RETURN
-  600 FORMAT(/' For State ',A2,'  fit to individual term values for each
+  600 FORMAT(/' For State ',A3,'  fit to individual term values for each
      1  {v,J,p,isot}'/1x,6('******'))
   602 FORMAT(/' *** ARRAY DIMENSION PROBLEM ***  JP(ISTATE)=',i2,
      1  ',ISOT=',I2,')=',i3,'  greater than  NVIBMX=',i4)
@@ -147,11 +149,11 @@ c
      1  ',ISOT=',I2,')=',i3,'  greater than  NVIBMX=',i4)
   606 FORMAT(/'  Absolute zero of energy is fixed at level {v=',i3,
      1 ', J=',i3,', p=',i2,'}'/1x,12('**'),10x,'of isotopomer ',i2,
-     2 ' of  State ',A2)
+     2 ' of  State ',A3)
   608 FORMAT(' For ',A2,'(',i3,')-',A2,'(',I3,')  fit to',i5,
      1 ' T(v,J,p) term values,'/20x,'of which',i5,' are involved in only
      2 one transition')
-  700 FORMAT("'",'T(',A2,':',i3,',',i3,',',SP,i2,';',SS,i2,')',I5,"'")
+  700 FORMAT("'",'T(',A3,':',i3,',',i3,',',SP,i2,';',SS,i2,')',I4,"'")
       END
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 

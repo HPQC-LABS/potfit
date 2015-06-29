@@ -1,9 +1,9 @@
 c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 c** 'Block' Data Utility routine named: 'arrsizes.h' that governs 
-c    array dimensioning in program  DPotFit 2.0
+c    array dimensioning in program  DPotFit 2.1
 c-----------------------------------------------------------------------
       INTEGER NISTPMX,NPARMX,NbetaMX,NBOBMX,HPARMX,NDATAMX,
-     1  NVIBMX,NBCMX,NSTATEMX,NPNTMX,NROTMX,NCMMax
+     1  NVIBMX,NBCMX,NSTATEMX,NPNTMX,NROTMX,NCMMAX
 
 c*  NISTPMX  is the maximum number of isotopomers allowed for fit
       PARAMETER (NISTPMX =  12)
@@ -14,10 +14,10 @@ c             simultaneously fitted to
 
 c*  NPARMX  is the largest number of free parameters allowed for fit
 c  Since FS origins may be parameters, this is also max. no, data bands
-      PARAMETER (NPARMX  = 6000)
+      PARAMETER (NPARMX  = 8000)
 
 c*  NbetaMX  is the largest number of exponent parameters allowed for fit
-      PARAMETER (NbetaMX  = 30)
+      PARAMETER (NbetaMX  = 40)
 
 c*  NBOBMX-1  is the highest-order polynomial expansion allowed for the
 c      adiabatic or centrifugal Born-Oppenheimer breakdown functions, or 
@@ -31,7 +31,7 @@ c           HPARMX >= NSTATEMX*[5 + (NbetaMX+1) + 5*(NBOBMX+1)]
 cc    PARAMETER (HPARMX = 300)
 
 c*  NDATAMX  is largest No. of individual data which may be considered
-      PARAMETER (NDATAMX = 33000)
+      PARAMETER (NDATAMX = 35000)
 
 c*  NVIBMX  is the maximum number of vibrational levels of a single
 c           state for which data are to be considered
@@ -49,7 +49,7 @@ c*  NROTMX  is the highest order of rotational constants calculated and
 c            used for estimating level energies
       PARAMETER (NROTMX = 7)
 
-c*  NCMMax is the largest number of Cm terms in the MLR or DELR 
+c*  NCMMAX is the largest number of Cm terms in the MLR or DELR 
 c            long-range potential
-      PARAMETER (NCMMax = 8)
+      PARAMETER (NCMMAX = 12)
 

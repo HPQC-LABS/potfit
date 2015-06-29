@@ -1,7 +1,7 @@
 c***********************************************************************
-c***** R.J. Le Roy  subroutine SCHRQ, last updated  12 June 2011 *******
+c***** R.J. Le Roy  subroutine SCHRQ, last modified  9 May 2015 ********
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-c                COPYRIGHT 2008-2011  by  Robert J. Le Roy             +
+c                COPYRIGHT 2008-2014  by  Robert J. Le Roy             +
 c   Dept. of Chemistry, Univ. of Waterloo, Waterloo, Ontario, Canada   +
 c    This software may not be sold or any other commercial use made    +
 c      of it without the express written permission of the author.     +
@@ -19,7 +19,7 @@ c  which is also internally incorporated into EO, VLIM & EEPS.
 c* Note that these reduced quantities (& the internal eigenvalue E)
 c  contain a factor of the squared integration increment  RH**2 .
 c  This saves arithmetic work in the innermost loop of the algorithm.
-c** For energy in (cm-1), BFCT=ZMU(u)*H(Angst)**2/16.857629205 (1/cm-1)
+c** For energy in (cm-1), BFCT=ZMU(u)*H(Angst)**2/16.857629206 (1/cm-1)
 c** INNODE > 0  specifies that wavefx. initiates at RMIN with a node 
 c     (normal default case);  INNODE.le.0  specifies  zero slope  at
 c     RMIN (for finding symmetric eigenfunctions of symmetric potential
@@ -104,8 +104,8 @@ c++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
           SPNEND= WF(NEND-1)
           ENDIF
       JQTST = 0
-c** Start iterative loop; try to converge for up to 20 iterations.
-      DO 90 IT= 1,20
+c** Start iterative loop; try to converge for up to 30 iterations.
+      DO 90 IT= 1,30
           ITER= IT
           IF(INNER.GT.0) GO TO 38
    10     IF(KVIN.LT.-10) THEN
@@ -369,15 +369,10 @@ c** Adjust energy increment if having convergence difficulties.  Not
 c  usually needed except for some quasibounds extremely near  VMAX .
               ICOR= ICOR+1
               DEP= DE/BFCT
-              IF(IWR.NE.0) WRITE(6,617) IT,DEP
+              IF(IWR.NE.0) WRITE(6,617) JROT,EO,IT,DEP
               DE= 0.5d0*DE
               E= E-DE
               EO= E/BFCT
-cc            IF(IT.EQ.20) THEN
-cc                WRITE(6,617) IT,DEP
-cc                WRITE(6,620) KVIN,JROT,ITER,DEPRN
-cc                GO TO 100
-cc                ENDIF
               ENDIF
    90     CONTINUE
 c** End of iterative loop which searches for eigenvalue ************
@@ -490,14 +485,14 @@ c** Return in error mode
   602 FORMAT(' ITER    ETRIAL',8X,'F(E)      DF(E)     D(E)',
      1 6X,'M    R(M)   /WF(M)   /WF(M)   R(NEND) NBEG ITP1'/
      2  1X,99('-'))
-  603 FORMAT(I4,1PD15.7,3D10.2,0PI7,F7.3,1P2D9.1,0PF8.2,I6,I5)
+  603 FORMAT(I4,1PD15.7,3D10.2,0P,I7,F7.2,1P2D9.1,0PF8.2,I6,I5)
   604 FORMAT('   NOTE:  for  J=',I3,'   EO=',F12.4,' .ge. V(',i3,')=',
      1  F12.4)
   605 FORMAT(/' Solution of radial Schr. equation for   E(v=',I3,',J=',
      1  I3,') =',F15.7/2x,4('    R(I)   WF(I)   ')/2X,38('--') )
   606 FORMAT(2X,4(F8.3,F11.7))
-  607 FORMAT('E(v=',I3,',J=',I3,')=',F11.4,1x,I3,' Iter   R(M)=',F6.3,
-     1 '  WF(NBEG=',i6,')/WF(M)=',1PD8.1/ 37x,'INNER=',I2,6x,
+  607 FORMAT('E(v=',I3,',J=',I3,')=',F11.4,I4,' Iter  R(M)=',F6.2,
+     1 '  WF(NBEG=',i6,')/WF(M)=',1PD8.1/36x,'INNER=',I2,6x,
      2 'WF(NEND=',i6,')/WF(M)=',D8.1)
   608 FORMAT(' *** SCHRQ Error:  E=',F9.2,' > V(',I6,')=',F9.2,
      1  '  at  Rmax=',F6.2,'  for  IT=',I2)
@@ -520,8 +515,8 @@ c** Return in error mode
   616 FORMAT(' ** WARNING *** For  v=',I2,', J=',I3,' at  E=',G14.7,
      1  ':  inward propagation finds no turning point ... Energy too low
      2 or potential too weak' )
-  617 FORMAT(' *** SCHRQ has a convergence problem, so for  IT=',I2,
-     1 '  cut  DE=',1PD10.2,'  in HALF' )
+  617 FORMAT(' ** @ J=',I3,'  E=',1PD9.2,' SCHRQ has cgce prob at  IT=',
+     1 0P,I3,', so halve  DE=',1PD10.2 )
   618 FORMAT(' *** For  J=',I3,'  E=',F9.2,'  JWKB start gives  SB/SI=',
      1  1PD10.3,'  so use a node.')
   619 FORMAT(1X,99('-'))
@@ -661,7 +656,7 @@ c***********************************************************************
 c** Subroutine to calculates quasibound level tunneling lifetime/width
 c** For relevant theory see Le Roy & Liu [J.Chem.Phys.69,3622-31(1978)]
 c  and Connor & Smith [Mol.Phys. 43, 397 (1981)] and Huang & Le Roy 
-c  [J.Chem.Phys. 119, 7398 (2003); Erratum, ibid, 127, xxxx (2007)]
+c  [J.Chem.Phys. 119, 7398 (2003); Erratum, ibid, 126, 169904 (2007)]
 c** Final level width calculation from Eq.(4.5) of Connor & Smith.
 c  Rearranged slightly for consistency with PotFit derivatives 9/05/02
 c-----------------------------------------------------------------------
@@ -851,8 +846,8 @@ c  Le Roy & Liu in J.C.P.69,3622(1978).
      1ouble-humped barrier:  E(v=',I3,', J=',I3,') =',G15.8,I6)
   610 FORMAT(16X,'(NOTE: this has the node count of a   v=',I3,2X,A5,
      1 '-well level')
-  611 FORMAT(4X,'Log10(lifetime/sec)=',F10.5,';   Log10(width/cm-1)=',
-     1 F10.5,'  dG/dv=',F7.2,'  V(max)=',f9.2,'(cm-1)')
+  611 FORMAT(12X,'Log10(lifetime/sec)=',F10.5,' ;   Log10(width/cm-1)=',
+     1 F10.5,'   dG/dv=',G12.5,'   V(max)=',G14.7,'(cm-1)')
       END
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 

@@ -14,17 +14,17 @@ c=======================================================================
       INCLUDE 'BLKDATA.h'
 c* Define types for local variables
        INTEGER check,j,counter,nParams,ISTATE,ISTART,
-     1 IDAT,i,m,k,kk,jj,n
+     1 IDAT,i,m,k,kk,jj,n,IPASS
        REAL*8  XG(8),WG(8),x(4),w(4),BTemp,BTempInv,
-     1 CONST(3),jump,a,b,YVAL(8),RVAL(8),
+     1 CONST(3),jump,a,b,YVAL(8),RDIST(8),
      2 VDIST(8),EXP_TERM,int_fact,Vsq,VPsq,Rsq,RINV,XTEMP,Bclass,Bq1,
-     3 Bq2,INTEGRALS(NPARMX+3),error,BVIR,BETADISTa,dVdR(8),d2VdR(8),
+     3 Bq2,INTEGRALS(NPARMX+3),error,BVIR,dVdR(8),d2VdR(8),
      4 XTEMP1,dBcdP(NPARMX),dBq1dP(NPARMX),dBVIRdP(NPARMX),ZMU,dBVIR
 c
        REAL*8, PARAMETER :: k_boltz=1.3806488D-23, NA=6.02214129D23,
      1  h = 6.62606957D-34, c = 2.99792458D10, k_cm = k_boltz/(h*c),
      2  h_cm = 1.d0/c, pi = 3.14159265358979323846, amu=1.660538921D-27,
-     3  Cu= 16.857629205D0
+     3  Cu= 16.857629206D0
 c* Common block data for quadrature weights and points
       data x/0.960289856497536d0, 0.796666477413627d0,
      1       0.525532409916329d0, 0.183434642495650d0/,
@@ -78,23 +78,24 @@ c.. sets the y value for the gaussian formula
                   YVAL(i)= 0.5d0*((b - a)*XG(i) + (b + a))
 c... mapping  r<->y=(r/re - 0.9999)/(r/re + 1.0001) 
 c   where 'real' range is  0.01*Re  to infty - with  'p=2'
-                  RVAL(i)= Re(ISTATE)*DSQRT((1.0001d0 
+                  RDIST(i)= Re(ISTATE)*DSQRT((1.0001d0 
      1                           + 0.9999d0*YVAL(i))/(1.d0 - YVAL(i)))
                   VDIST(i)= 0.d0
                   ENDDO
-c.. calls VGENp to find the neccesary derivatives
-              CALL VGENp(ISTATE,RVAL,VDIST,BETADISTa,IDAT,dVdR,d2VdR)
+             IPASS= 0 
+c.. calls VGENP to find the neccesary derivatives
+              CALL VGENP(ISTATE,RDIST,VDIST,dVdR,d2VdR,IDAT)
 c.. the next loop is over each Gaussian point within each subinterval
               DO i= 1,8
 c.. some of the terms that will be used in later calculations of the
 c.  virial coefficients are constructed here
                   EXP_TERM= DEXP(-VDIST(i)*BTempINV)
-                  RINV= 1.d0/RVAL(i)
+                  RINV= 1.d0/RDIST(i)
                   int_fact= (Re(ISTATE)/(1.d0 - YVAL(i)))**2
      1                                          *RINV*(b - a)*0.5d0
                   Vsq= VDIST(i)**2
                   VPsq= dVdR(i)**2
-                  Rsq= RVAL(i)**2
+                  Rsq= RDIST(i)**2
                   XTEMP= d2VdR(i)**2/10.d0 + VPsq*RINV**2/5.d0
      1      + dVdR(i)**3*BTempInv*RINV/9.d0 - (VPsq*BTempInv)**2/72.d0
 c~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

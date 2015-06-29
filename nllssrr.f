@@ -93,9 +93,8 @@ c***********************************************************************
      3 RMSR, RMSRB, DSE, TSTPS, TSTPSB, TSTPU, TFACT, S, UU, Zthrd
       DATA F95/12.7062D0,4.3027D0,3.1824D0,2.7764D0,2.5706D0,2.4469D0,
      1  2.3646D0,2.3060D0,2.2622D0,2.2281D0/
-c
-      IF((NPTOT.GT.NPMAX).OR.(NPTOT.GT.NPINTMX)
-     1                    .OR.(NPTOT.GT.NDATA)) THEN
+      IF((NPTOT.GT.NPMAX).OR.(NPTOT.GT.NPINTMX).OR.(NPINTMX.NE.NPMAX)
+     1                                      .OR.(NPTOT.GT.NDATA)) THEN
 c** If array dimensioning inadequate, print warning & then STOP
           WRITE(6,602) NPTOT,NPINTMX,NPMAX,NDATA
           STOP
@@ -210,23 +209,6 @@ cc *** For 'Robust' fitting, adjust uncertainties here
               ENDDO
           RMSR= DSQRT(DSE/NDATA)
           IF(NPARM.LE.0) GO TO 60
-
-c         IF((ITER.GT.1).AND.(RMSR.GT.RMSRB).AND.(ISCAL.LE.1)) THEN
-c** LeRoy's Marquardt-like attempt to damp changes if RMSR increases ...
-c             ISCAL= ISCAL+ 1
-c             IF(LPRINT.GE.5) THEN
-c                 WRITE(6,620) ITER,RMSR/RMSRB,ISCAL
-c 620 FORMAT(' At Iteration',i3,'  with  RMSD/RMSDB=',1PD8.1,
-c    1 "  Scale Param Changes by  (1/4)**",i1)
-c                 WRITE(6,612) (J,PV(J),PU(J),PS(J),PC(J),J=1,NPTOT)
-c                 ENDIF
-c             DO  J= 1,NPTOT
-c                 PC(J)= 0.25d0*PCS(J)
-c                 PV(J)= PV(J)- 3.d0*PC(J)
-c                 ENDDO
-c             GOTO 10
-c             ENDIF
-
 c
 c** Compute the inverse of  CM 
           CM(1,1) = 1.D0 / CM(1,1)
@@ -332,14 +314,32 @@ c   of change, sensitivity & uncertainty to correct label.
               ENDDO
           IF(LPRINT.GE.5) WRITE(6,612) (J,PV(J),PU(J),PS(J),PC(J),
      1                                                      J=1,NPTOT)
-          IF(NITER.GT.1) THEN
+          IF(ITER.GT.1) THEN
+c** New Convergence test is to require  RMSD to be constant to 1 part in
+c   10^7 in adjacent cycles (unlikely to occur by accident)
+              IF(ABS((RMSR/RMSRB)-1.d0).LT.1.d-07) THEN
+                  IF(LPRINT.GE.3) WRITE(6,607) ITER,
+     1                                      ABS(RMSR/RMSRB-1.d0),TSTPS
+                  GO TO 54
+                  ENDIF
+              ENDIF
 c** Test for convergence:  for every parameter desire:
-c  |RMSD - RMSD(previous cycle)| < 0.000001
-               IF(ABS(RMSR-RMSRB).LT.0.000001) THEN
-                          IF(LPRINT.GE.3) WRITE(6,606) ITER,TSTPU,RMSR
-                          GO TO 54
-               ENDIF
-           ENDIF
+c  |parameter change| < |parameter sensitivity|,  but after iteration #5
+c  STOP iterating if  Max{|change/sens.|} increases AND 
+c  Max{|change/unc.|} < 0.01
+c             IF(TSTPS.GT.1.d0) THEN
+c                 IF((RMSR.GT.RMSRB).AND.(ITER.GT.5)) THEN
+c                     IF((TSTPU.LT.1.d-2).OR.((TSTPU.LT.0.5d0).AND.
+c    1                                             (ITER.GT.10))) THEN
+c                         IF(LPRINT.GE.3) WRITE(6,606) ITER,TSTPU,RMSR
+c                         GO TO 54
+c                         ENDIF
+c                     ENDIF
+c               ELSE
+c                 IF(LPRINT.GE.3) WRITE(6,608) ITER,TSTPS,RMSR
+c                 GO TO 54
+c               ENDIF
+c             ENDIF
 cc        CALL FLUSH(6)
           IF(ROBUST.GT.0) Zthrd= 1.d0/3.d0
    50     CONTINUE
@@ -400,6 +400,7 @@ c ... if IROUND < 0, sequentially round off 'last' remaining parameter
 c ... if IROUND > 0, sequentially round off remaining parameter with
 c                    largest relative uncertainty.
 c ... First, select parameter JFIX with the largest relative uncertainty
+          JFIX= NPTOT
           K= 0
           TSTPS= 0.d0
           DO  J= 1,NPTOT
@@ -417,12 +418,12 @@ c ... First, select parameter JFIX with the largest relative uncertainty
       CALL ROUND(JROUND,NPMAX,NPTOT,NPTOT,JFIX,PV,PU,PS,CM)
       JFXP(JFIX)= 1
       IF(LPRINT.GE.2)
-     1            WRITE(6,614) JFIX,UU,PU(JFIX),PS(JFIX),PV(JFIX),RMSR
+     1       WRITE(6,614) JFIX,UU,PU(JFIX),PS(JFIX),JFIX,PV(JFIX),RMSR
       NPARM= NPARM-1
       IF(NPARM.EQ.0) THEN
 c** After rounding complete, make one more pass with all non-fixed 
 c  parameters set free to get full correct final correlation matrix, 
-c  uncertainties & sensitivities
+c  uncertainties & sensitivities.  Don't update parameters on this pass!
           NPARM= NPFIT
           QUIT= 1
           DO  J= 1,NPTOT
@@ -467,20 +468,24 @@ c   change, sensitivity & uncertainty to correct absolute number label.
 c
   602 FORMAT(/' *** NLLSSRR problem:  [NPTOT=',i4,'] > min{NPINTMX=',
      1  i4,' NPMAX=',i4,', NDATA=',i6,'}')
-  604 FORMAT(' After Cycle #',i2,':   DRMSD=',1PD12.5,'    test(PS)=',
+  604 FORMAT(' After Cycle #',i2,':  DRMSD=',1PD14.7,'    test(PS)=',
      1  1PD8.1,'   test(PU)=',D8.1)
-  606 FORMAT(/' Full',i3,'-cycle convergence:  Max{|change/sens.|}=',
+  606 FORMAT(/' Effective',i3,'-cycle Cgce:  MAX{|change/unc.|}=',
+     1  1PD8.1,' < 0.01   DRMSD=',D10.3)
+  607 FORMAT(/' Full',i3,'-cycle convergence:  {ABS(RMSR/RMSRB)-1}=',
+     1  1PD9.2,'  TSTPS=',D8.1)
+  608 FORMAT(/' Full',i3,'-cycle convergence:  Max{|change/sens.|}=',
      1  1PD8.1,' < 1   DRMSD=',D10.2)
-  610 FORMAT(/ ' !! CAUTION !! fit of',i4,' parameters to',I6,' data not
-     1converged after',i3,' Cycles'/5x,'DRMS(deviations)=',1PD10.3,
+  610 FORMAT(/ ' !! CAUTION !! fit of',i5,' parameters to',I6,' data not
+     1 converged after',i3,' Cycles'/5x,'DRMS(deviations)=',1PD10.3,
      2 '    test(PS) =',D9.2,'    test(PU) =',D9.2/1x,31('**'))
-  612 FORMAT((4x,'PV(',i4,') =',1PD22.14,' (+/-',D8.1,')    PS=',d8.1,
-     1  '   PC=',d8.1))
+  612 FORMAT((3x,'PV(',i4,') =',1PD22.14,' (+/-',D8.1,')    PS=',d8.1,
+     1  '   PC=',d9.1))
   614 FORMAT(' =',39('==')/' Round Off  PV(',i4,')=',1PD21.13,' (+/-',
-     1 D9.2,')    PS=',d9.2/10x,'fix it as ',D21.13,'  & refit:  DRMS(de
-     2viations)=',D10.3)
+     1 D9.2,')    PS=',d9.2/4x,'fix PV(',I4,') as ',D21.13,
+     2 '  & refit:  DRMS(deviations)=',D10.3)
   616 FORMAT(/i6,' data fit to',i5,' param. yields  DRMS(devn)=',
-     1 1PD12.5:'  tst(PS)=',D8.1)
+     1 1PD14.7:'  tst(PS)=',D8.1)
       END
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 

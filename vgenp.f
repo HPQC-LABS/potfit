@@ -1,5 +1,5 @@
 c***********************************************************************
-      SUBROUTINE VGENP(ISTATE,RDIST,VDIST,BETADIST,IDAT,dVdR,d2VdR)
+      SUBROUTINE VGENP(ISTATE,RDIST,VDIST,BETADIST,IDAT,dVdR,d2VdR2)
 c***********************************************************************
 c** This subroutine will generate function values and derivatives
 c   of Morse/Long-Range potentials as required for semiclassical 
@@ -24,8 +24,8 @@ c???  * skip partial derivative calculation if  IDAT.le.0
 c     * If RDIST.le.0  calculate partial derivatives at distances
 c             given by array RD(i,ISTATE) & return them in array DVtot
 c** On entry via common blocks:
-c  APSE(s).le.0  to use {p,q}-type exponent polynomial of order Nbeta(s)
-c     if APSE(s) > 0 \beta(r) is Pashov spline defined by Nbeta(s) points
+c  APSE(s).ge.0  to use {p,q}-type exponent polynomial of order Nbeta(s)
+c     if APSE(s) < 0 \beta(r) is Pashov spline defined by Nbeta(s) points
 c* Nbeta(s) is order of the beta(r) exponent polynomial or # spline points
 c    MMLR(j,s)  are long-range inverse-powers for an MLR or DELR potential
 c    nPB(s)  the basic value of power p for the beta(r)  exponent function
@@ -79,25 +79,26 @@ c=======================================================================
 c-----------------------------------------------------------------------
 c** Define local variables ...
       INTEGER I,J,I1,ISTATE,IPV,IPVSTART,ISTART,ISTOP,LAMB2,m,npow,
-     1  IDAT, NBAND, IISTP,MMLR1D(NCMMax),KDER
+     1  IDAT, NBAND, IISTP,MMLR1D(NCMMax)
       REAL*8 BTEMP,BINF,RVAL(8),RTEMP,RM2,XTEMP,PBTEMP,PETEMP,RET,
      1 FSW,Xtemp2,Btemp2,BMtemp,BMtemp2,RMF,PBtemp2,C3VAL,C3bar,C6bar,
      2 C6adj,C9adj,YP,YQ,YPA,YPB,YQA,YQB,YPE,YPM,YPMA,YPMB,YPP,YQP,YQPA,
      3 YQPB,REp,Req,RDp,RDq,DYPDRE,DYQDRE,VAL,DVAL,HReP,HReQ,SL,SLB,
      4 AREF,AREFp,AREFq, RE3,RE6,RE8,T0,T0P,T1,ULRe,Scalc,dLULRedCm(9),
      5 dLULRedRe,dLULRedDe,dULRdDe,dULRdCm(9),RD3,RD6,RD8,DVDD,RDIST(8),
-     6 VDIST(8),BETADIST,BFCT,JFCT,JFCTLD,RETSig,RETPi,RETp,RETm,
-     7 REpADA,REpADB,REqADA,REqADB,D2VAL,dYPdR,
+     6 VDIST(8),BETADIST,BFCT,JFCT,JFCTLD,RETSig,RETPi,RETp,RETm,A1,A2,
+     7 REpADA,REpADB,REqADA,REqADB,D2VAL,dYPdR,A3,X,VATT,dVATT,D2VATT,
      8 dYPEdR,dYQdR,d2YPdR,d2YQdR,d2YPEdR,RINV,dDULRdR,d2DULRdR,dULRdR,
-     9 d2ULRdR,DXTEMP,D2XTEMP,dVdR(8),d2VdR(8),dLULRdR,YPPP,dBdR,d2BdR,
-     x dULRdRCm(9),dXdP(HPARMX),dXpdP(HPARMX),dLULRdCm(9),
+     9 d2ULRdR,DXTEMP,D2XTEMP,dVdR(8),d2VdR2(8),dLULRdR,YPPP,dBdR,d2BdR,
+     x DX,T1P,T1PP, dULRdRCm(9),dXdP(HPARMX),dXpdP(HPARMX),dLULRdCm(9),
      y DYPEDRE,dVALdRe,dYBdRe,dBpdRe,DYPpDRE,DYPEpdRE,DYQpDRE,dYBpdRe,
      z xBETA(NbetaMX),rKL(NbetaMX,NbetaMX)
 c***********************************************************************
-c** Common block for partial derivatives at the one distance RDIST
-      REAL*8 dVdPk(HPARMX)
-      COMMON /dVdPkBLK/dVdPk
-c***********************************************************************
+c** Common block for partial derivatives of potential at the one distance RDIST
+c   and HPP derivatives for uncertainties
+      REAL*8 dVdPk(HPARMX),dDe(0:NbetaMX),dDedRe
+      COMMON /dVdPkBLK/dVdPk,dDe,dDedRe
+c=======================================================================
 c** Temporary variables for MLR and DELR potentials
       INTEGER MMLRP,IDATLAST
       REAL*8 ULR,dAAdRe,dBBdRe,dVdBtemp,CmVALL,tDm,tDmp,tDmpp,
@@ -134,210 +135,249 @@ c** When calculating only one potential point
           ENDDO
 c** Initialize parameter counter for this state ...
       IPVSTART= POTPARI(ISTATE) - 1
-c** First - define values & derivatives of uLR at Re fro MLR potential
-      ULRe= 0.d0
-      T1= 0.d0
-      IF(rhoAB(ISTATE).GT.0.d0) THEN
+c=======================================================================
+c First ... for the case of an MLR potential ...
+c-----------------------------------------------------------------------
+          IF(PSEL(ISTATE).EQ.2) THEN
+c** First - define values & derivatives of uLR at Re for MLR potential
+          ULRe= 0.d0
+          T1= 0.d0
+          IF(rhoAB(ISTATE).GT.0.d0) THEN
 c ... save uLR powers in a 1D array
-          DO  m= 1, NCMM(ISTATE)
-              MMLR1D(m)= MMLR(m,ISTATE)
-              ENDDO
-          KDER= 1 
-          CALL dampF(RE(ISTATE),rhoAB(ISTATE),NCMM(ISTATE),
-     1      MMLR1D,IDF(ISTATE),IDSTT(ISTATE),KDER,Dm,Dmp,Dmpp)
-          ENDIF
-      DO  m= 1,NCMM(ISTATE)
-          IF(rhoAB(ISTATE).LE.0.d0) THEN
-              dLULRedCm(m)= 1.d0/RE(ISTATE)**MMLR(m,ISTATE)
-            ELSE
-              dLULRedCm(m)= Dm(m)/RE(ISTATE)**MMLR(m,ISTATE)
-            ENDIF
-          T0= CmVAL(m,ISTATE)*dLULRedCm(m)
-          ULRe= ULRe + T0
-          T1= T1 + MMLR(m,ISTATE)*T0
-          ENDDO
-      dLULRedRe= -T1/(ULRe*RE(ISTATE))
-      DO  m= 1,NCMM(ISTATE)
-          dLULRedCm(m)= dLULRedCm(m)/ULRe
-          IF(rhoAB(ISTATE).GT.0) THEN
-              dLULRedRe= dLULRedRe + dLULRedCm(m)*Dmp(m)/Dm(m)
+              DO  m= 1, NCMM(ISTATE)
+                  MMLR1D(m)= MMLR(m,ISTATE)
+                  ENDDO
+              CALL dampF(RE(ISTATE),rhoAB(ISTATE),NCMM(ISTATE),
+     1                  MMLR1D,IVSR(ISTATE),IDSTT(ISTATE),Dm,Dmp,Dmpp)
               ENDIF
-          ENDDO
-      BINF= DLOG(2.0d0*DE(ISTATE)/ULRe)
-      betaINF(ISTATE)= BINF
-      DO  I= ISTART,ISTOP
-          RVAL(I)= RDIST(I)
-          RINV= 1.d0/RVAL(I)
-          RDp= RVAL(I)**nPB(ISTATE)
-          RDq= RVAL(I)**nQB(ISTATE)
-          YPE= (RDp-REP)/(RDp+REP)
-          YP= (RDp-AREFp)/(RDp+AREFp)
-          YQ= (RDq-AREFq)/(RDq+AREFq)
-          YPM= 1.d0 - YP
-          DYPDRE= -0.5d0*nPB(ISTATE)*(1.d0 - YP**2)/RE(ISTATE)
-          DYQDRE= -0.5d0*nQB(ISTATE)*(1.d0 - YQ**2)/RE(ISTATE)
-          DYPEDRE= -0.5d0*nPB(ISTATE)*(1.d0 - YPE**2)/RE(ISTATE)
-          DYPDR= -DYPDRE*RE(ISTATE)*RINV
-          DYPEDR= 0.5d0*nPB(ISTATE)*RINV*(1.d0 - YPE**2)
-          DYQDR= -DYQDRE*RE(ISTATE)*RINV
-          D2YPDR= -DYPDR*RINV*(1.d0 + nPB(ISTATE)*YP)
-          D2YPEDR= -DYPEDR*RINV*(1.d0 + nPB(ISTATE)*YPE)
-          D2YQDR= -DYQDR*RINV*(1.d0 + nQB(ISTATE)*YQ)
-          DYPpDRE= -nPB(ISTATE)*YP*RINV*DYPDRE
-          DYPEpDRE= -nPB(ISTATE)*YPE*RINV*DYPEDRE
-          DYQpDRE= -nQB(ISTATE)*YQ*RINV*DYQDRE
-          D2VAL= 0.d0
-          YPP= 1.d0
-          DVAL= 0.d0
-          DBDB(0,I,ISTATE)= 1.0d0
-          VAL= BETA(0,ISTATE) + YQ*BETA(1,ISTATE)
-          DVAL= BETA(1,ISTATE)
-          npow= Nbeta(ISTATE)
+          DO  m= 1,NCMM(ISTATE)
+              dLULRedCm(m)= 1.d0/RE(ISTATE)**MMLR(m,ISTATE)
+              IF(rhoAB(ISTATE).GT.0.d0) dLULRedCm(m)= Dm(m)*dLULRedCm(m)
+              T0= CmVAL(m,ISTATE)*dLULRedCm(m)
+              ULRe= ULRe + T0
+              T1= T1 + MMLR(m,ISTATE)*T0
+              ENDDO
+          dLULRedRe= -T1/(ULRe*RE(ISTATE))
+          DO  m= 1,NCMM(ISTATE)
+              dLULRedCm(m)= dLULRedCm(m)/ULRe
+              IF(rhoAB(ISTATE).GT.0) THEN
+                  dLULRedRe= dLULRedRe + dLULRedCm(m)*Dmp(m)/Dm(m)
+                  ENDIF
+              ENDDO
+          BINF= DLOG(2.0d0*DE(ISTATE)/ULRe)
+          betaINF(ISTATE)= BINF
+          DO  I= ISTART,ISTOP
+              RVAL(I)= RDIST(I)
+              RINV= 1.d0/RVAL(I)
+              RDp= RVAL(I)**nPB(ISTATE)
+              RDq= RVAL(I)**nQB(ISTATE)
+              YPE= (RDp-REP)/(RDp+REP)
+              YP= (RDp-AREFp)/(RDp+AREFp)
+              YQ= (RDq-AREFq)/(RDq+AREFq)
+              YPM= 1.d0 - YP
+              DYPDRE= -0.5d0*nPB(ISTATE)*(1.d0 - YP**2)/RE(ISTATE)
+              DYQDRE= -0.5d0*nQB(ISTATE)*(1.d0 - YQ**2)/RE(ISTATE)
+              DYPEDRE= -0.5d0*nPB(ISTATE)*(1.d0 - YPE**2)/RE(ISTATE)
+              DYPDR= -DYPDRE*RE(ISTATE)*RINV
+              DYPEDR= 0.5d0*nPB(ISTATE)*RINV*(1.d0 - YPE**2)
+              DYQDR= -DYQDRE*RE(ISTATE)*RINV
+              D2YPDR= -DYPDR*RINV*(1.d0 + nPB(ISTATE)*YP)
+              D2YPEDR= -DYPEDR*RINV*(1.d0 + nPB(ISTATE)*YPE)
+              D2YQDR= -DYQDR*RINV*(1.d0 + nQB(ISTATE)*YQ)
+              DYPpDRE= -nPB(ISTATE)*YP*RINV*DYPDRE
+              DYPEpDRE= -nPB(ISTATE)*YPE*RINV*DYPEDRE
+              DYQpDRE= -nQB(ISTATE)*YQ*RINV*DYQDRE
+              D2VAL= 0.d0
+              YPP= 1.d0
+              DVAL= 0.d0
+              DBDB(0,I,ISTATE)= 1.0d0
+              VAL= BETA(0,ISTATE) + YQ*BETA(1,ISTATE)
+              DVAL= BETA(1,ISTATE)
+              npow= Nbeta(ISTATE)
 c-------------------------------------------------------------------
-          DO  J= 2,npow
+              DO  J= 2,npow
 c... now calculate power series part of the Morse-like exponent,along
 c    with its radial derivatives
-              D2VAL= D2VAL + BETA(J,ISTATE)* DBLE(J)
+                  D2VAL= D2VAL + BETA(J,ISTATE)* DBLE(J)
      1                                            *DBLE(J - 1) *YPP
-              YPP= YPP*YQ
-              DVAL= DVAL + BETA(J,ISTATE)* DBLE(J)* YPP
-              YPPP= YPP* YQ
-              VAL= VAL + BETA(J,ISTATE)*YPPP
-              DBDB(J,I,ISTATE)= YPM*YPPP
-              ENDDO
-          YPP= YPPP
+                  YPP= YPP*YQ
+                  DVAL= DVAL + BETA(J,ISTATE)* DBLE(J)* YPP
+                  YPPP= YPP* YQ
+                  VAL= VAL + BETA(J,ISTATE)*YPPP
+                  DBDB(J,I,ISTATE)= YPM*YPPP
+                  ENDDO
+              YPP= YPPP
 c~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 c*** DBDB & DBDRe= dBeta/dRe  used in uncertainty calculation in fununc.f
-          DBDRe(I,ISTATE)= -YP*dLULRedRe
-          dVALdRe= DBDRe(I,ISTATE) + (BINF - VAL)*DYPDRE
+              DBDRe(I,ISTATE)= -YP*dLULRedRe
+              dVALdRe= DBDRe(I,ISTATE) + (BINF - VAL)*DYPDRE
      1                                   + (1.d0 - YP)*DVAL*DYQDRE
-          IF(RREF(ISTATE).LE.0.d0) DBDRe(I,ISTATE)= dVALdRe
+              IF(RREF(ISTATE).LE.0.d0) DBDRe(I,ISTATE)= dVALdRe
 c-----------------------------------------------------------------------
 c... now the power series and its radial derivatives are used in the
 c    construction of the derivatives  with respect to the parameters
-          dBpdRe= DYPpDRE*(BINF - VAL) - DYPDR*dLULRedRe
+              dBpdRe= DYPpDRE*(BINF - VAL) - DYPDR*dLULRedRe
      1   + (-DYPDR*DYQDRE + (1.d0 - YP)*DYQpDRE - DYPDRE*DYQDR)*DVAL
      2                              + (1.d0 - YP)*DYQDR*DYQDRE*D2VAL
-          D2VAL= (BINF - VAL)*D2YPDR - 2.d0*DYPDR*DYQDR*DVAL
+              D2VAL= (BINF - VAL)*D2YPDR - 2.d0*DYPDR*DYQDR*DVAL
      1                   + (1.d0- YP)*(D2YQDR*DVAL + DYQDR**2*D2VAL)
-          DVAL= (BINF - VAL)*DYPDR + (1.d0- YP)*DYQDR*DVAL
-          VAL= YP*BINF + (1.d0- YP)*VAL
-          dBdR= dYPEdR*VAL + YPE*DVAL
-          d2BdR= d2YPEdR*VAL + 2.d0*dYPEdR*DVAL + YPE*D2VAL
-          dYBdRe= DYPEDRE*VAL + YPE*dVALdRe
-          dYBpdRe= VAL*DYPEpDRE + DYPEDRE*DVAL + DYPEDR*dVALdRe
+              DVAL= (BINF - VAL)*DYPDR + (1.d0- YP)*DYQDR*DVAL
+              VAL= YP*BINF + (1.d0- YP)*VAL
+              dBdR= dYPEdR*VAL + YPE*DVAL
+              d2BdR= d2YPEdR*VAL + 2.d0*dYPEdR*DVAL + YPE*D2VAL
+              dYBdRe= DYPEDRE*VAL + YPE*dVALdRe
+              dYBpdRe= VAL*DYPEpDRE + DYPEDRE*DVAL + DYPEDR*dVALdRe
      1                                                  + YPE*dBpdRe
 c~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-          BETAFX(I,ISTATE)= VAL
-          XTEMP= DEXP(-VAL*YPE)
+              BETAFX(I,ISTATE)= VAL
+              XTEMP= DEXP(-VAL*YPE)
 c** Now begin by generating  uLR(r)
-          ULR= 0.d0
+              ULR= 0.d0
 c-------------------------------------------------------------------
-          dULRdR= 0.d0
-          d2ULRdR= 0.d0
-          dULRdRCm= 0.d0
+              dULRdR= 0.d0
+              d2ULRdR= 0.d0
+              dULRdRCm= 0.d0
 c~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-          IF(rhoAB(ISTATE).GT.0.d0) THEN
-              KDER= 2
-              CALL dampF(RVAL(I),rhoAB(ISTATE),NCMM(ISTATE),MMLR1D,
-     1                     IDF(ISTATE),IDSTT(ISTATE),KDER,Dm,Dmp,Dmpp)
-              ENDIF
-          DO  m= 1,NCMM(ISTATE)
-              IF(rhoAB(ISTATE).LE.0.d0) THEN
+              IF(rhoAB(ISTATE).GT.0.d0) THEN
+                  CALL dampF(RVAL(I),rhoAB(ISTATE),NCMM(ISTATE),MMLR1D,
+     1                         IVSR(ISTATE),IDSTT(ISTATE),Dm,Dmp,Dmpp)
+                  ENDIF
+              DO  m= 1,NCMM(ISTATE)
+                  IF(rhoAB(ISTATE).LE.0.d0) THEN
 c-----------------------------------------------------------------------
-                  dULRdCm(m)= 1.d0*RINV**MMLR(m,ISTATE)
-                  dULRdRCm(m)= -dULRdCm(m)*RINV*DBLE(MMLR(m,ISTATE))
-                  dDULRdR= 0.d0
-                  d2DULRdR= 0.d0
-                ELSE
-                  dULRdCm(m)= Dm(m)*RINV**MMLR(m,ISTATE)
-                  dULRdRCm(m)= -dULRdCm(m)*RINV *DBLE(MMLR(m,ISTATE)) 
+                      dULRdCm(m)= 1.d0*RINV**MMLR(m,ISTATE)
+                      dULRdRCm(m)= -dULRdCm(m)*RINV*DBLE(MMLR(m,ISTATE))
+                      dDULRdR= 0.d0
+                      d2DULRdR= 0.d0
+                    ELSE
+                      dULRdCm(m)= Dm(m)*RINV**MMLR(m,ISTATE)
+                      dULRdRCm(m)= -dULRdCm(m)*RINV*DBLE(MMLR(m,ISTATE))
      2                                   + Dmp(m)*RINV**MMLR(m,ISTATE)
-                  dDULRdR= Dmp(m)*RINV**MMLR(m,ISTATE)
-                  d2DULRdR= Dmpp(m)*RINV**MMLR(m,ISTATE)
-                ENDIF
-              ULR= ULR + CmVAL(m,ISTATE)*dULRdCm(m)
-              dULRdR= dULRdR + CmVAL(m,ISTATE)*(dDULRdR
+                      dDULRdR= Dmp(m)*RINV**MMLR(m,ISTATE)
+                      d2DULRdR= Dmpp(m)*RINV**MMLR(m,ISTATE)
+                    ENDIF
+                  ULR= ULR + CmVAL(m,ISTATE)*dULRdCm(m)
+                  dULRdR= dULRdR + CmVAL(m,ISTATE)*(dDULRdR
      1                         - dULRdCm(m)*RINV*DBLE(MMLR(m,ISTATE)))
-              d2ULRdR= d2ULRdR + CmVAL(m,ISTATE)*(d2DULRdR
+                  d2ULRdR= d2ULRdR + CmVAL(m,ISTATE)*(d2DULRdR
      1   - 2.d0*dDULRdR*RINV*DBLE(MMLR(m,ISTATE)) + dULRdCm(m)*RINV**2
      2               *DBLE(MMLR(m,ISTATE))*DBLE((MMLR(m,ISTATE) + 1)))
-              ENDDO
-          dLULRdR= dULRdR/ULR
-          DO m= 1,NCMM(ISTATE)
-              dLULRdCm(m)= dULRdCm(m)/ULR
-              ENDDO
+                  ENDDO
+              dLULRdR= dULRdR/ULR
+              DO m= 1,NCMM(ISTATE)
+                  dLULRdCm(m)= dULRdCm(m)/ULR
+                  ENDDO
 c~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-          XTEMP= XTEMP*ULR/ULRe
+              XTEMP= XTEMP*ULR/ULRe
 c... note ... reference energy for each state is asymptote ...
-          DVDD= XTEMP*(XTEMP - 2.D0)  
+              DVDD= XTEMP*(XTEMP - 2.D0)  
 c---      VPOT(I,ISTATE)= DE(ISTATE)*DVDD + VLIM(ISTATE)
 c---      VDIST(I)= VPOT(I,ISTATE)
-          VDIST(I)= DE(ISTATE)*DVDD + VLIM(ISTATE)
-          BETADIST= VAL
-          IF(IDAT.LE.0) GO TO 999
+              VDIST(I)= DE(ISTATE)*DVDD + VLIM(ISTATE)
+              BETADIST= VAL
+              IF(IDAT.LE.0) GO TO 999
 c-              ENDDO
-          YPP= 2.d0*DE(ISTATE)*(1.0d0-XTEMP)*XTEMP
-          IPV= IPVSTART+2
+              YPP= 2.d0*DE(ISTATE)*(1.0d0-XTEMP)*XTEMP
+              IPV= IPVSTART+2
 c... derivatives w.r.t R
-          DXTEMP= XTEMP*(dLULRdR - dBdR)
-          D2XTEMP= XTEMP*(dBdR**2 - d2BdR + (d2ULRdR 
+              DXTEMP= XTEMP*(dLULRdR - dBdR)
+              D2XTEMP= XTEMP*(dBdR**2 - d2BdR + (d2ULRdR 
      1                                           - 2*dBdR*dULRdR)/ULR)
-          dVdR(I)= 2.d0*DE(ISTATE)*DXTEMP*(XTEMP - 1.d0)
-          d2VdR(I)= 2.d0*DE(ISTATE)*(DXTEMP**2 + D2XTEMP
+              dVdR(I)= 2.d0*DE(ISTATE)*DXTEMP*(XTEMP - 1.d0)
+              d2VdR2(I)= 2.d0*DE(ISTATE)*(DXTEMP**2 + D2XTEMP
      1                                                *(XTEMP - 1.d0))
 c *** This is just to write the derivatives for testing
-c             IF(RDIST.LT.0) WRITE (40,640) (RVAL,VVAL,dVdR,d2VdR,
+c             IF(RDIST.LT.0) WRITE (40,640) (RVAL,VVAL,dVdR,d2VdR2,
 c    1                                                           YVAL)
 c 640         FORMAT(G12.5, G18.10, G18.10, G18.10, G14.7)
 c ... derivative w.r.t. Cm's
-          DO  m= 1, NCMM(ISTATE)
-              IPV= IPV+ 1
-              dXdP(IPV)= XTEMP*(dLULRdCm(m) + (YPE*YP - 1.d0)
+              DO  m= 1, NCMM(ISTATE)
+                  IPV= IPV+ 1
+                  dXdP(IPV)= XTEMP*(dLULRdCm(m) + (YPE*YP - 1.d0)
      1                                                  *dLULRedCm(m))
-              dXpdP(IPV)= DEXP(-VAL*YPE)/ULRe*(dULRdRCm(m)
+                  dXpdP(IPV)= DEXP(-VAL*YPE)/ULRe*(dULRdRCm(m)
      1                    - dBdR*dULRdCm(m)) + (DXTEMP*(YPE*YP - 1.d0)
      2                   + XTEMP*(dYPEdR*YP + YPE*dYPdR))*dLULRedCm(m)
-              dVpdP(IPV,I)= 2.d0*DE(ISTATE)*(dXdP(IPV)*DXTEMP
+                  dVpdP(IPV,I)= 2.d0*DE(ISTATE)*(dXdP(IPV)*DXTEMP
      1                                    + (XTEMP - 1.d0)*dXpdP(IPV))
-              DVtot(IPV,I)= -YPP*(dLULRedCm(m)*(YP*YPE- 1.d0)
-     1                                               + dULRdCm(m)/ULR)
-              ENDDO
+                  DVtot(IPV,I)= -YPP*(dLULRedCm(m)*(YP*YPE- 1.d0)
+     1                                           + dULRdCm(m)/ULR)
+                  ENDDO
 c... derivative w.r.t. Re  
-          dXdP(IPVSTART+2)= -XTEMP*(dYBdRe + dLULRedRe)
-          dXpdP(IPVSTART+2)= -DXTEMP*(dYBdRe + dLULRedRe)
+              dXdP(IPVSTART+2)= -XTEMP*(dYBdRe + dLULRedRe)
+              dXpdP(IPVSTART+2)= -DXTEMP*(dYBdRe + dLULRedRe)
      1                                                 - XTEMP*dYBpdRe
-          dVpdP(IPVSTART+2,I)= 2.d0*DE(ISTATE)*(dXdP(IPVSTART+2)
+              dVpdP(IPVSTART+2,I)= 2.d0*DE(ISTATE)*(dXdP(IPVSTART+2)
      1                     *DXTEMP + (XTEMP - 1.d0)*dXpdP(IPVSTART+2))
-          DVtot(IPVSTART+2,I)= YPP*(dYBdRe + dLULRedRe)
+              DVtot(IPVSTART+2,I)= YPP*(dYBdRe + dLULRedRe)
 c... derivative w.r.t. De
-          dXdP(IPVSTART+1)= -XTEMP*YPE*YP
-          dXpdP(IPVSTART+1)= -(XTEMP*(YPE*DYPDR + DYPEDR*YP)
+              dXdP(IPVSTART+1)= -XTEMP*YPE*YP
+              dXpdP(IPVSTART+1)= -(XTEMP*(YPE*DYPDR + DYPEDR*YP)
      1                                            + YPE*YP*DXTEMP)
-          DVDD= DVDD + YPP*YP*YPE/DE(ISTATE)
-          YPP= YPP*YPE*(1.d0 - YP)
-          dVpdP(IPVSTART+1,I)= 2.d0*(dXdP(IPVSTART+1)*DXTEMP
+              DVDD= DVDD + YPP*YP*YPE/DE(ISTATE)
+              YPP= YPP*YPE*(1.d0 - YP)
+              dVpdP(IPVSTART+1,I)= 2.d0*(dXdP(IPVSTART+1)*DXTEMP
      1                             + (XTEMP - 1.d0)*dXpdP(IPVSTART+1)) 
      2                                    + 2.d0*(XTEMP - 1.d0)*DXTEMP
-          DVtot(IPVSTART+1,I)= DVDD
+              DVtot(IPVSTART+1,I)= DVDD
 c... finally ... derivatives w.r.t. exponent expansion coefficients
-          DO  J= 0,npow
-              IPV= IPV+1
-              dXdP(IPV)= XTEMP*YPE*(1.d0 - YP)*YQ**J
-              dXpdP(IPV)= (XTEMP*((1.d0 - YP)*DYPEDR - DYPDR*YQ)
+              DO  J= 0,npow
+                  IPV= IPV+1
+                  dXdP(IPV)= XTEMP*YPE*(1.d0 - YP)*YQ**J
+                  dXpdP(IPV)= (XTEMP*((1.d0 - YP)*DYPEDR - DYPDR*YQ)
      1                  + YPE*(1.d0 - YP)*DXTEMP)*YQ**J + XTEMP*J*(YPE
      2                                       *(1.d0 - YP))*YQ**(J - 1)
-              dVpdP(IPV,I)= 2.d0*DE(ISTATE)*(dXdP(IPV)*DXTEMP
+                  dVpdP(IPV,I)= 2.d0*DE(ISTATE)*(dXdP(IPV)*DXTEMP
      1                                    + (XTEMP - 1.d0)*dXpdP(IPV))
-              DVtot(IPV,I)= YPP
-              YPP= YPP*YQ
+                  DVtot(IPV,I)= YPP
+                  YPP= YPP*YQ
+                  ENDDO
               ENDDO
-          ENDDO
+          ENDIF
+c-----------Finished calculations for MLR potential
+
+c=======================================================================
+c Second ... for the case of an Aziz'ian HFD-C potential ...
+c-----------------------------------------------------------------------
+      IF(PSEL(ISTATE).EQ.6) THEN
+          A1= BETA(0,ISTATE)
+          A2= BETA(1,ISTATE)
+          A3= BETA(2,ISTATE)
+          DO  I= ISTART, ISTOP
+              X= RD(I,ISTATE)/RE(ISTATE)
+              VATT= 0.d0
+              dVATT= 0.d0
+              T1= 1.d0
+              T1P= 0.d0
+              T1PP= 0.d0
+              IF(X.LT.A2) THEN
+                  T1= EXP(-(A2/X - 1.d0)**A3)
+                  T1P= 2.d0*(A2**2/X**3 - A2/(X*X))
+                  T1PP= (T1P*T1P - 6.d0*(A2*A2/X**4 + 4.d0*A2/X**3))
+                  T1P= T1*T1P
+                  T1PP= T1*T1PP
+                  ENDIF
+              DO M= 1,NCMM(ISTATE)
+                   T0= T1*CmVAL(m,ISTATE)/X**MMLR(m,ISTATE)
+                   VATT= VATT+ T0
+                   dVATT= dVATT + (T1P - MMLR(m,ISTATE)*T1/X)*T0
+                   d2VATT= d2VATT + (T1PP - (2*T1P - T1*(MMLR(m,ISTATE)
+     1                                    + 1.d0)/X)*MMLR(m,ISTATE))/X
+                   ENDDO 
+              DX= AA(ISTATE)*X**BETA(4,ISTATE)
+     1                        *EXP(-X*(BB(ISTATE) + X*BETA(3,ISTATE)))
+              VDIST(I)= DX - DE(ISTATE)*VATT
+              T0= BETA(4,ISTATE)/X - BB(ISTATE)- 2.d0*X*BETA(3,ISTATE)
+              dVdR(I)= (DX*T0 - DVATT*DE(ISTATE))/RE(ISTATE)
+              d2VdR2(I)= -(DX*(T0**2 - BETA(4,ISTATE)/X**2 
+     1        -2.d0*BETA(3,ISTATE)) - d2VATT*DE(ISTATE))/RE(ISTATE)**2
+              ENDDO
+          ENDIF
 ccccc Print for testing
-      rewind(10)
-      write(10,610) (RD(i,ISTATE),vpot(i,istate),BETAFX(i,istate),
-     1                                        i= 1, NDATPT(ISTATE),50)
-  610 FORMAT(/(f10.4,f15.5,f12.6))
+cc        rewind(10)
+cc        write(10,610) (RD(i,ISTATE),vpot(i,istate),BETAFX(i,istate),
+cc   1                                        i= 1, ISTART,ISTOP)
+cc610 FORMAT(/(f10.4,f15.5,f12.6))
 ccccc End of Print for testing
 
       IF((NUA(ISTATE).GE.0).OR.(NUB(ISTATE).GT.0)) THEN
@@ -573,7 +613,7 @@ cc                ENDIF
 cc            ENDDO
 cc        ENDIF
 cc 66 CONTINUE
-cc606 FORMAT(9('===')/'!!!! Extrapolate to correct ',A2,' inner-wall inf
+cc606 FORMAT(9('===')/'!!!! Extrapolate to correct ',A3,' inner-wall inf
 cc   1lection at   R=',f6.4,'   V=',f8.0/9('==='))
 c++++++++++++End of Inner Wall Test/Correction code+++++++++++++++++++++
 
@@ -592,7 +632,7 @@ c         WRITE (40,644) IISTP,RDIST,RVAL,VDIST,I,NDATPT(ISTATE)
 c 644 FORMAT ('IISTP =',I3,' RDIST =',G16.8,' RVAL =',G16.8,
 c    &          ' VDIST =',G16.8,' I =',I6,' NDATPT =',I6)
 cccccccc
-          BFCT= 16.857629205d0/(ZMASS(3,IISTP)*RDIST(I)**2)
+          BFCT= 16.857629206d0/(ZMASS(3,IISTP)*RDIST(I)**2)
           JFCT= DBLE(JPP(IDAT)*(JPP(IDAT)+1))
           IF(IOMEG(ISTATE).GT.0) JFCT= JFCT - IOMEG(ISTATE)**2
           IF(IOMEG(ISTATE).EQ.-2) JFCT= JFCT + 2.D0

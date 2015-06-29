@@ -34,30 +34,38 @@ c*** Manage parameters for term value mappings ...
                   DO  ISOT= 1, NISTP
                       DO  I= VMIN(ISTATE,ISOT),VMAX(ISTATE,ISOT)
                           IF(NBC(I,ISOT,ISTATE).GT.0) THEN
-                              DO  J= 1,NBC(I,ISOT,ISTATE)
+                              DO  J=1,NBC(I,ISOT,ISTATE)
                                   IPV= IPV+1
                                   PV(IPV)= ZBC(I,J-1,ISOT,ISTATE)
                                   ENDDO
-                              ENDIF
+                              IF(NQC(I,ISOT,ISTATE).GT.0) THEN  
+                                  DO  J=1,NQC(I,ISOT,ISTATE)
+                                      IPV= IPV+1
+                                      PV(IPV)= ZQC(I,J-1,ISOT,ISTATE)
+                                      ENDDO
+                                   ENDIF
+                              ENDIF  
+                          ENDDO
+                      DO  I= VMIN(ISTATE,ISOT),VMAX(ISTATE,ISOT)
                           ENDDO
                       ENDDO
                   ENDIF
               IF(PSEL(ISTATE).GT.0) THEN
 c*** Manage parameters for potential function mapping ...
-                  IF(PSEL(ISTATE).LT.6) THEN
+                  IF((PSEL(ISTATE).LE.6).and.(PSEL(ISTATE).NE.4)) THEN
                       IPV= IPV+ 1
                       PV(IPV)= DE(ISTATE)
                       ENDIF
                   IPV= IPV+ 1
                   PV(IPV)= RE(ISTATE)
-                  IF((PSEL(ISTATE).GE.2).AND.(PSEL(ISTATE).LE.5)) THEN
+                  IF((PSEL(ISTATE).GE.2).AND.(PSEL(ISTATE).LE.6)) THEN
                       DO  m= 1,NCMM(ISTATE)
                           IPV= IPV+ 1
                           PV(IPV)= CmVAL(m,ISTATE)
                           ENDDO
                       ENDIF
                   J= 0
-                  IF(APSE(ISTATE).GT.0) J=1
+                  IF(NSR(ISTATE).LT.0) J=1   !! for Pashov spline exponent
                   DO  I= J,Nbeta(ISTATE)
                       IPV= IPV+ 1
                       PV(IPV)= BETA(I,ISTATE)
@@ -110,26 +118,32 @@ c*** Manage parameters for term value mappings ...
                                   IPV= IPV+1
                                   ZBC(I,J-1,ISOT,ISTATE)= PV(IPV)
                                   ENDDO
+                              IF(NQC(I,ISOT,ISTATE).GT.0) THEN
+                                  DO  J= 1,NQC(I,ISOT,ISTATE)
+                                      IPV= IPV+1
+                                      ZQC(I,J-1,ISOT,ISTATE)= PV(IPV)
+                                      ENDDO
+                                  ENDIF
                               ENDIF
                           ENDDO
                       ENDDO
                   ENDIF
               IF(PSEL(ISTATE).GT.0) THEN
 c*** Manage parameters for potential function mappings ...
-                  IF(PSEL(ISTATE).LT.6) THEN
+                  IF((PSEL(ISTATE).LE.6).and.(PSEL(ISTATE).NE.4)) THEN
                       IPV= IPV + 1
                       DE(ISTATE)= PV(IPV)
                       ENDIF
                   IPV= IPV + 1
                   RE(ISTATE) = PV(IPV)
-                  IF((PSEL(ISTATE).GE.2).AND.(PSEL(ISTATE).LE.5)) THEN
+                  IF((PSEL(ISTATE).GE.2).AND.(PSEL(ISTATE).LE.6)) THEN
                       DO  m= 1,NCMM(ISTATE)
                           IPV= IPV+ 1
                           CmVAL(m,ISTATE)= PV(IPV) 
                           ENDDO
                       ENDIF
                   J=0
-                  IF(APSE(ISTATE).GT.0) J=1
+                  IF(NSR(ISTATE).LT.0) J=1   !! for Pashov spline exponent
                   DO I= J, Nbeta(ISTATE)
                       IPV = IPV + 1
                       BETA(I,ISTATE) = PV(IPV)
