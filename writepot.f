@@ -4,8 +4,8 @@ c***********************************************************************
 c***********************************************************************
 c** Subroutine to print out complete description of the potential fx.
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-c++                   Version of  18 November 2012
-c               (just after removal of RREFad, RREFna & RREFw)
+c               ----- Version of  29 June 2015 -----
+c          (after allowing p,q,r^p_ref,r^q_ref to be free)
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** On entry:
 c    NPASS   is the number of times WRITEPOT was called.
@@ -42,9 +42,9 @@ c=======================================================================
      1 DX,DX1,ULRe,C3VAL,C6adj,C9adj,RET,RETSig,RETPi,RETp,RETm,Tm,
      2 VATTRe,dVATTRe,PVSR,ATT,YP,YPP,BT,Rinn,Rout,A1,A2,A3,B5,VX,dVX,
      3 uLR,CMMp2,uCMMp2,uDe,XRO,dXRO,dXROdRe,d2XROdRe,fRO,XROpw,ROmp2,
-     4 dCmp2dRe,dDeROdRe,yqRe,betaRe,yPOW,XRI,AREF, dCmp2(0:NbetaMX),
-     5 dULRdCm(NCMMax),DM(MMAX),DMP(MMAX),DMPP(MMAX),bTT(-2:2),
-     6 cDS(-4:4),bDS(-4:4)
+     4 dCmp2dRe,dDeROdRe,yqRe,betaRe,yPOW,XRI,AREFP,AREFQ,
+     5 dCmp2(0:NbetaMX),dULRdCm(NCMMax),DM(MMAX),DMP(MMAX),DMPP(MMAX),
+     6 bTT(-2:2),cDS(-4:4),bDS(-4:4)
       DATA QCNAM/' QB(v=','QD(v=',' QH(v=',' QL(v=',' QM(v=',
      1    ' QN(v=',' QO(v=',' '/
       DATA BCNAM/' Tv(v=',' Bv(v=','-Dv(v=',' Hv(v=',' Lv(v=',' Mv(v=',
@@ -146,14 +146,18 @@ c** If fitting to band constants for this state ....
                   ENDIF
               GOTO 90
               ENDIF
-          AREF= RREF(ISTATE)
-          IF(AREF.LE.0.d0) AREF= RE(ISTATE)
+          AREFP= RREFP(ISTATE)
+          AREFQ= RREFQ(ISTATE)
+          IF(AREFP.LE.0.d0) AREFP= RE(ISTATE)
+          IF(AREFQ.LE.0.d0) AREFQ= RE(ISTATE)
           IF(PSEL(ISTATE).EQ.1) THEN
 c** Header printout for EMO potential
               WRITE(6,602) SLABL(ISTATE),Nbeta(ISTATE),nPB(ISTATE),
      1                                       nPB(ISTATE),Nbeta(ISTATE)
-              IF(RREF(ISTATE).LE.0.d0) WRITE(6,552) (nQB(ISTATE),i=1,5)
-              IF(RREF(ISTATE).GT.0.d0) WRITE(6,555) AREF,AREF
+              IF(RREFP(ISTATE).LE.0.d0) WRITE(6,552) (nQB(ISTATE),i=1,5)
+              IF(RREFP(ISTATE).GT.0.d0) WRITE(6,555) AREFP,AREFP
+              IF(RREFQ(ISTATE).LE.0.d0) WRITE(6,552) (nQB(ISTATE),i=1,5)
+              IF(RREFQ(ISTATE).GT.0.d0) WRITE(6,555) AREFQ,AREFQ
               ENDIF
 
           IF(PSEL(ISTATE).EQ.2) THEN
@@ -167,16 +171,20 @@ c** Header printout for MLR potential
                   WRITE(6,680) Nbeta(ISTATE)
                   BETA(Nbeta(ISTATE),ISTATE)= BINF
                 ENDIF
-              IF(RREF(ISTATE).LE.0.d0) WRITE(6,552) (nQB(ISTATE),i=1,5)
-              IF(RREF(ISTATE).GT.0.d0) WRITE(6,555) AREF,AREF
+              IF(RREFP(ISTATE).LE.0.d0) WRITE(6,552) (nQB(ISTATE),i=1,5)
+              IF(RREFP(ISTATE).GT.0.d0) WRITE(6,555) AREFP,AREFP
+              IF(RREFQ(ISTATE).LE.0.d0) WRITE(6,552) (nQB(ISTATE),i=1,5)
+              IF(RREFQ(ISTATE).GT.0.d0) WRITE(6,555) AREFQ,AREFQ
               ENDIF
 c
           IF(PSEL(ISTATE).EQ.3) THEN
 c** Header printout for DELR potential form ...
               WRITE(6,612) SLABL(ISTATE),Nbeta(ISTATE),nQB(ISTATE),
      1                           nQB(ISTATE),NSR(ISTATE),Nbeta(ISTATE)
-              IF(RREF(ISTATE).LE.0.d0) WRITE(6,552) (nQB(ISTATE),i=1,5)
-              IF(RREF(ISTATE).GT.0.d0) WRITE(6,555) AREF,AREF
+              IF(RREFP(ISTATE).LE.0.d0) WRITE(6,552) (nQB(ISTATE),i=1,5)
+              IF(RREFP(ISTATE).GT.0.d0) WRITE(6,555) AREFP,AREFP
+              IF(RREFQ(ISTATE).LE.0.d0) WRITE(6,552) (nQB(ISTATE),i=1,5)
+              IF(RREFQ(ISTATE).GT.0.d0) WRITE(6,555) AREFQ,AREFQ
               ENDIF
 c
           IF(PSEL(ISTATE).EQ.4) THEN
@@ -651,8 +659,8 @@ c-----------------------------------------------------------------------
 c** For DELR, calculate and write out the  A  and  B  coefficients
 c-----------------------------------------------------------------------
           IF(PSEL(ISTATE).EQ.3) THEN
-              yqRe=(RE(ISTATE)**nQB(ISTATE) - AREF**nQB(ISTATE))
-     1                  /(RE(ISTATE)**nQB(ISTATE) + AREF**nQB(ISTATE))
+              yqRe=(RE(ISTATE)**nQB(ISTATE) - AREFQ**nQB(ISTATE))
+     1                  /(RE(ISTATE)**nQB(ISTATE) + AREFQ**nQB(ISTATE))
               betaRe= beta(0,ISTATE)
               yPOW= 1.d0
               DO i= 1, Nbeta(ISTATE)
@@ -686,7 +694,7 @@ c** Writing out the exponent expansion parameter information.
 c-----------------------------------------------------------------------
           BTEMP= 0.d0
           IF(NPASS.GT.1) WRITE(20,671) NSR(ISTATE), Nbeta(ISTATE),
-     1                          nPB(ISTATE), nQB(ISTATE), RREF(ISTATE)
+     1            nPB(ISTATE),nQB(ISTATE),RREFP(ISTATE),RREFQ(ISTATE)
           NALL= MAX(NSR(ISTATE),Nbeta(ISTATE)) 
           J=0 
           IF(NSR(ISTATE).LT.0) J=1 
@@ -824,7 +832,7 @@ c-----------------------------------------------------------------------
   668 FORMAT(1Pd20.12,d20.12,0P,I3)
   669 FORMAT(1Pd20.12,0P,I3,9x,'% ',A4,I2,'  IFX',A4,I2)
   670 FORMAT(1Pd20.12,0P,I3,9x,'% ',A2,'  IFX',A2)
-  671 FORMAT(/2I3,I4,I3,1PD11.2,8x,'% NSR Nbeta nPB nQB RREF')
+  671 FORMAT(/2I3,I4,I3,1PD11.2,8x,'% NSR Nbeta nPB nQB RREFP RREFQ')
   672 FORMAT(/2I3,I4,I3,I5,14x,'% NUA NUB pAD qAD LRad')
   673 FORMAT(/2I3,I4,I3,19x,'% NTA NTB pNA qNA')
   674 FORMAT(1Pd20.12,0P,I3,9x,'% ',a5,'  IFX',A5)

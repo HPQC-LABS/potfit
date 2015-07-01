@@ -5,8 +5,8 @@ c** This subroutine reads parameters that define the model potential or
 c   parameter representation used for each state in the fit procedure
 c   analytical molecular potentials for the direct Hamiltonian fitting
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-c                   Version of 18 November 2012
-c             (after removal of RREFns, RREFad & RREFw)
+c                   Version of 29 June 2015
+c          (after allowing p,q,r^p_ref,r^q_ref to be free)
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** On entry:
 c   ISTATE  is the electronic state being fitted to
@@ -28,6 +28,10 @@ c
 c** Set some defaults for parameters not common to all models ...
       IFXDe(ISTATE)= 1
       IFXRe(ISTATE)= 1
+      IFXRREFP(ISTATE)=1
+      IFXRREFQ(ISTATE)=1
+      IFXnPB(ISTATE)=1
+      IFXnQB(ISTATE)=1
       DO  m= 1, NCMMax
           IFXCm(m,ISTATE)= 1
           ENDDO
@@ -174,7 +178,7 @@ c                  y(R;k,a,b) = (R - Re )/(a*R + b*Re )
 c=======================================================================
           READ(5,*) AGPEF(ISTATE), BGPEF(ISTATE)
 c=======================================================================
-          RREF(ISTATE)= -1.d0
+          RREFP(ISTATE)= -1.d0
           ENDIF
       WRITE(6,626) SLABL(ISTATE),RMIN(ISTATE),RMAX(ISTATE),RH(ISTATE)
 c
@@ -188,9 +192,18 @@ c          <= 0: determined from fits.
 c  IFRe(s) indicates whether the equilibrium radial distance will be:
 c           = 1: held fixed at read-in values.
 c          <= 0: determined from fits.
+c  nPB(s)  is the power  p  for  beta(r)  basic exponent variable
+c  nQB(s)  is the power  q  for  beta(r)  exponent expansion variable
+c  RREFP/Q(s)  defines the reference distance in the potential exponent 
+c    expansion variable:  * for  RREF.le.0 , define parameter  RREF = Re
+c      * for  RREF.gt.0 , fix parameter  RREF   at its read-in value
 c=======================================================================
-      READ(5,*) DE(ISTATE), IFXDE(ISTATE)
-      READ(5,*) RE(ISTATE), IFXRE(ISTATE)
+      READ(5,*) DE(ISTATE),IFXDE(ISTATE)
+      READ(5,*) RE(ISTATE),IFXRE(ISTATE)
+      READ(5,*) RREFP(ISTATE),IFXRREFP(ISTATE)
+      READ(5,*) RREFQ(ISTATE),IFXRREFQ(ISTATE)
+      READ(5,*) nPB(ISTATE),IFXnPB(ISTATE)
+      READ(5,*) nQB(ISTATE),IFXnQB(ISTATE) 
 c=======================================================================
       IF((PSEL(ISTATE).EQ.4).OR.(PSEL(ISTATE).EQ.6)) IFXDE(ISTATE)= 1
 c=======================================================================
@@ -198,14 +211,8 @@ c** Read parameters defining the exponent coefficient function \beta(r)
 c  NSR(s).ge.0  to use {p,q}-type exponent polynomial of order Nbeta(s)
 c     if NSR(s) < 0, \beta(r) is Pashov spline defined by Nbeta(s) points
 c* Nbeta(s) is order of the beta(r) exponent polynomial or # spline points
-c  nPB(s)  is the power  p  for  beta(r)  basic exponent variable
-c  nQB(s)  is the power  q  for  beta(r)  exponent expansion variable
-c  RREF(s)  defines the reference distance in the potential exponent 
-c    expansion variable:  * for  RREF.le.0 , define parameter  RREF = Re
-c      * for  RREF.gt.0 , fix parameter  RREF   at its read-in value
 c=======================================================================
-      READ(5,*) NSR(ISTATE), Nbeta(ISTATE), nPB(ISTATE), nQB(ISTATE),
-     1                                                     RREF(ISTATE)
+      READ(5,*) NSR(ISTATE), Nbeta(ISTATE)
 c=======================================================================
       IF(Nbeta(ISTATE).GE.NbetaMX) THEN
           WRITE(6,755) ISTATE,Nbeta(ISTATE),NbetaMX
@@ -278,7 +285,7 @@ c** Constraints for Tiemann polynomial potential ....
           nPB(ISTATE)= 1
           nQB(ISTATE)= 1
           IFXDe(ISTATE)= 1
-          RREF(ISTATE)= RE(ISTATE)
+          RREFP(ISTATE)= RE(ISTATE)
           ENDIF
 c=======================================================================
 c** Read parameters defining the BOB adiabatic radial functions

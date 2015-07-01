@@ -1,0 +1,115 @@
+14,16c14,15
+< c               ----- Version of  09 February 2013 -----
+< c           (after removal or RREFna, RREFad & RREFw variables!)
+< c              (and after replacing NLpow by Nbeta & NSR) 
+---
+> c               ----- Version of  29 June 2015 -----
+> c          (after allowing p,q,r^p_ref,r^q_ref to be free)
+107,115c106,114
+<      4 d2ULRe,SL,SLB,SLBB,AREF,AREFp,AREFq,T0,T1,Scalc,dLULRedRe,
+<      5 dLULRedCm(NCMMax),dLULRedDe,dULRdDe,dULRdCm(NCMMax),
+<      6 dULRepdCm(NCMMax),dULRedCm(NCMMax),DVDD,RDIST,VDIST,BETADIST,X,
+<      7 BFCT,JFCT,JFCTLD,REadAp,REadBp,REadAq,REadBq,REnaAp,REnaBp,
+<      8 REnaAq,REnaBq,REwp,dC6dDe,dC9dC3,dC9dC6,dC9dDe,BT,Rinn,Rout,A1,
+<      9 A2,A3,B5,xBETA(NbetaMX),rKL(NbetaMX,NbetaMX),C1LIM,BETA0,BETAN,
+<      o TM,VATT,DTT,D2TT,dATTdRe,dATTdb,ATT,BTT,REQ,VMIN,REQQ,XRI,dXRI,
+<      a fRO,XRIpw,XRO,dXRO,XROpw,ROmp2,dXROdRe,d2XROdRe,DXRIdRe,
+<      b d2XRIdRe,dCmp2dRe,EXPBI,BIrat,CMMp2,RMMp2,dAIdRe,
+---
+>      4 d2ULRe,SL,SLB,SLBB,AREFp,AREFq,AREFPp,AREFQq,T0,T1,
+>      5 Scalc,dLULRedRe,dLULRedCm(NCMMax),dLULRedDe,dULRdDe,
+>      6 dULRdCm(NCMMax),dULRepdCm(NCMMax),dULRedCm(NCMMax),DVDD,RDIST,
+>      7 VDIST,BETADIST,X,BFCT,JFCT,JFCTLD,REadAp,REadBp,REadAq,REadBq,
+>      8 REnaAp,REnaBp,REnaAq,REnaBq,REwp,dC6dDe,dC9dC3,dC9dC6,dC9dDe,BT,
+>      9 Rinn,Rout,A1,A2,A3,B5,xBETA(NbetaMX),rKL(NbetaMX,NbetaMX),C1LIM,
+>      o BETA0,BETAN,TM,VATT,DTT,D2TT,dATTdRe,dATTdb,ATT,BTT,REQ,VMIN,
+>      a REQQ,XRI,dXRI,fRO,XRIpw,XRO,dXRO,XROpw,ROmp2,dXROdRe,d2XROdRe,
+>      b DXRIdRe,d2XRIdRe,dCmp2dRe,EXPBI,BIrat,CMMp2,RMMp2,dAIdRe,
+129,132c128,133
+<       IF(RREF(ISTATE).LE.0) AREF= RE(ISTATE)
+<       IF(RREF(ISTATE).GT.0) AREF= RREF(ISTATE)
+<       AREFP= AREF**nPB(ISTATE)
+<       AREFQ= AREF**nQB(ISTATE)
+---
+>       IF(RREFP(ISTATE).LE.0) AREFP= RE(ISTATE)
+>       IF(RREFP(ISTATE).GT.0) AREFP= RREFP(ISTATE)
+>       IF(RREFQ(ISTATE).LE.0) AREFQ= RE(ISTATE)
+>       IF(RREFQ(ISTATE).GT.0) AREFQ= RREFQ(ISTATE)
+>       AREFPp= AREFP**nPB(ISTATE)
+>       AREFQq= AREFQ**nQB(ISTATE)
+176c177
+<               YQ= (RDQ - AREFQ)/(RDQ + AREFQ)
+---
+>               YQ= (RDQ - AREFQQ)/(RDQ + AREFQQ)
+205c206,211
+<               IF(RREF(ISTATE).LE.0.d0) THEN
+---
+>               IF(RREFP(ISTATE).LE.0.d0) THEN
+>                   DBDRe(I,ISTATE)= -0.5d0*nPB(ISTATE)*(1.d0-YP**2)
+>      1                                                *DVAL/RE(ISTATE)
+>                   VAL= VAL - (RVAL- RE(ISTATE))*DBDRe(I,ISTATE) 
+>                   ENDIF
+>               IF(RREFQ(ISTATE).LE.0.d0) THEN
+450,451c456,457
+<               YP= (RDp-AREFp)/(RDp+AREFp)
+<               YQ= (RDq-AREFq)/(RDq+AREFq)
+---
+>               YP= (RDp-AREFPp)/(RDp+AREFPp)
+>               YQ= (RDq-AREFQq)/(RDq+AREFQq)
+471c477,491
+<                   IF(RREF(ISTATE).LE.0.d0) DBDRe(I,ISTATE)= 
+---
+>                   IF(RREFP(ISTATE).LE.0.d0) DBDRe(I,ISTATE)= 
+>      1                            DBDRe(I,ISTATE)+ (BINF - VAL)*DYPDRE 
+>      2                                         + (1.d0-YP)*DVAL*DYQDRE
+>                   VAL= YP*BINF + (1.d0- YP)*VAL
+>                 ELSE
+> c... now calculate Pashov-spline exponent coefficient & its derivatives
+>                   VAL= 0.d0
+>                   DO  J= 1, Nbeta(ISTATE)
+>                       DBDB(J,I,ISTATE)= 
+>      1                               Scalc(YP,J,npow,xBETA,rKL,NbetaMX)
+>                       VAL= VAL+ DBDB(J,I,ISTATE)*BETA(J,ISTATE)
+>                       ENDDO
+>                   DBDRe(I,ISTATE)= -DBDB(npow,I,ISTATE)*dLULRedRe
+>                 ENDIF
+>                   IF(RREFQ(ISTATE).LE.0.d0) DBDRe(I,ISTATE)= 
+600,603c620,624
+<           yqRe= (REQ - AREFQ)/(REQ + AREFQ)       !! next - dyq/dr @ r_e
+<           dyqRedRe = 2.d0*nQB(ISTATE)*REQ*AREFQ/(Re(ISTATE)*
+<      1                                               (REQ + AREFQ)**2)
+<           IF(RREF(ISTATE).LE.0.d0) dyqRedRe= 0.d0
+---
+>           yqRe= (REQ - AREFQQ)/(REQ + AREFQQ)       !! next - dyq/dr @ r_e
+>           dyqRedRe = 2.d0*nQB(ISTATE)*REQ*AREFQQ/(Re(ISTATE)*
+>      1                                               (REQ + AREFQQ)**2)
+>           IF(RREFP(ISTATE).LE.0.d0) dyqRedRe= 0.d0
+>           IF(RREFQ(ISTATE).LE.0.d0) dyqRedRe= 0.d0
+661c682
+<               YQ= (RDQ-AREFQ)/(RDQ+AREFQ)
+---
+>               YQ= (RDQ-AREFQQ)/(RDQ+AREFQQ)
+699c720,721
+<               WRITE(30,*) RVAL,ULR
+---
+> cc            REWIND(30)
+> cc            WRITE(30,*) RVAL,ULR     !! test printout for error check
+720c742,744
+<               IF(RREF(ISTATE).LE.0.d0) 
+---
+>               IF(RREFP(ISTATE).LE.0.d0) 
+>      1             DVtot(IPV,I)= DVtot(IPV,I) - Btemp*DbetaRe*dyqRedRe
+>               IF(RREFQ(ISTATE).LE.0.d0) 
+770c794,795
+<               IF(RREF(ISTATE).LE.0) DBDRe(I,ISTATE)= 1.d0
+---
+>               IF(RREFP(ISTATE).LE.0) DBDRe(I,ISTATE)= 1.d0
+>               IF(RREFQ(ISTATE).LE.0) DBDRe(I,ISTATE)= 1.d0
+1270,1272c1295,1297
+<                   write(14,699) RVAL,TAR(I,ISTATE),(DVtot(J,I),
+<      1                                       J=IPVSTART+1,IPV)
+<   699 FORMAT(f9.4,1P,10D15.7)
+---
+> cc                write(14,699) RVAL,TAR(I,ISTATE),(DVtot(J,I),
+> cc   1                                       J=IPVSTART+1,IPV)
+> cc699 FORMAT(f9.4,1P,10D15.7)

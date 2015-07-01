@@ -6,12 +6,13 @@ c   of Morse/Long-Range potentials as required for semiclassical
 c   calculation (with quantum corrections) of virial coefficients and
 c   their analytical derivatives in direct hamiltonian fitting
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-c+++  COPYRIGHT 2009-2012  by  R.J. Le Roy and Aleksander Cholewinski ++
+c+++  COPYRIGHT 2009-2012  by  R.J. Le Roy, Aleksander Cholewinski 
+c                  and Nikesh S Dattani                               ++
 c   Dept. of Chemistry, Univ. of Waterloo, Waterloo, Ontario, Canada   +
 c    This software may not be sold or any other commercial use made    +
 c      of it without the express written permission of the authors.    +
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-c           ----- Version of 18 November 2012 -----
+c           ----- Version of 29 June 2015 -----
 c        (after removal of RREFad & RREFad & RREFw)
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** On entry:
@@ -84,12 +85,13 @@ c** Define local variables ...
      1 FSW,Xtemp2,Btemp2,BMtemp,BMtemp2,RMF,PBtemp2,C3VAL,C3bar,C6bar,
      2 C6adj,C9adj,YP,YQ,YPA,YPB,YQA,YQB,YPE,YPM,YPMA,YPMB,YPP,YQP,YQPA,
      3 YQPB,REp,Req,RDp,RDq,DYPDRE,DYQDRE,VAL,DVAL,HReP,HReQ,SL,SLB,
-     4 AREF,AREFp,AREFq, RE3,RE6,RE8,T0,T0P,T1,ULRe,Scalc,dLULRedCm(9),
-     5 dLULRedRe,dLULRedDe,dULRdDe,dULRdCm(9),RD3,RD6,RD8,DVDD,RDIST(8),
-     6 VDIST(8),BETADIST,BFCT,JFCT,JFCTLD,RETSig,RETPi,RETp,RETm,A1,A2,
-     7 REpADA,REpADB,REqADA,REqADB,D2VAL,dYPdR,A3,X,VATT,dVATT,D2VATT,
-     8 dYPEdR,dYQdR,d2YPdR,d2YQdR,d2YPEdR,RINV,dDULRdR,d2DULRdR,dULRdR,
-     9 d2ULRdR,DXTEMP,D2XTEMP,dVdR(8),d2VdR2(8),dLULRdR,YPPP,dBdR,d2BdR,
+     4 AREFP,AREFQ,AREFPp,AREFQq,RE3,RE6,RE8,T0,T0P,T1,ULRe,Scalc,
+     5 dLULRedCm(9),dLULRedRe,dLULRedDe,dULRdDe,dULRdCm(9),RD3,RD6,RD8,
+     6 DVDD,RDIST(8),VDIST(8),BETADIST,BFCT,JFCT,JFCTLD,RETSig,RETPi,
+     7 RETp,RETm,A1,A2,REpADA,REpADB,REqADA,REqADB,D2VAL,dYPdR,A3,X,
+     8 VATT,dVATT,D2VATT,dYPEdR,dYQdR,d2YPdR,d2YQdR,d2YPEdR,RINV,
+     9 dDULRdR,d2DULRdR,dULRdR,d2ULRdR,DXTEMP,D2XTEMP,dVdR(8),d2VdR2(8),
+     o dLULRdR,YPPP,dBdR,d2BdR,
      x DX,T1P,T1PP, dULRdRCm(9),dXdP(HPARMX),dXpdP(HPARMX),dLULRdCm(9),
      y DYPEDRE,dVALdRe,dYBdRe,dBpdRe,DYPpDRE,DYPEpdRE,DYQpDRE,dYBpdRe,
      z xBETA(NbetaMX),rKL(NbetaMX,NbetaMX)
@@ -112,10 +114,12 @@ ccc       IDATLAST= IDAT
 ccc put much of the initialization stuff here to be done once per cycle
 
       REP= RE(ISTATE)**nPB(ISTATE)
-      IF(RREF(ISTATE).LE.0) AREF= RE(ISTATE)
-      IF(RREF(ISTATE).GT.0) AREF= RREF(ISTATE)
-      AREFp= AREF**nPB(ISTATE)
-      AREFq= AREF**nQB(ISTATE)
+      IF(RREFP(ISTATE).LE.0) AREFP= RE(ISTATE)
+      IF(RREFP(ISTATE).GT.0) AREFP= RREFP(ISTATE)
+      IF(RREFQ(ISTATE).LE.0) AREFQ= RE(ISTATE)
+      IF(RREFQ(ISTATE).GT.0) AREFQ= RREFQ(ISTATE)
+      AREFPp= AREFP**nPB(ISTATE)
+      AREFQq= AREFQ**nQB(ISTATE)
 c** Normally data point starts from 1
       ISTART= 1
       ISTOP= 8
@@ -172,8 +176,8 @@ c ... save uLR powers in a 1D array
               RDp= RVAL(I)**nPB(ISTATE)
               RDq= RVAL(I)**nQB(ISTATE)
               YPE= (RDp-REP)/(RDp+REP)
-              YP= (RDp-AREFp)/(RDp+AREFp)
-              YQ= (RDq-AREFq)/(RDq+AREFq)
+              YP= (RDp-AREFPp)/(RDp+AREFPp)
+              YQ= (RDq-AREFQq)/(RDq+AREFQq)
               YPM= 1.d0 - YP
               DYPDRE= -0.5d0*nPB(ISTATE)*(1.d0 - YP**2)/RE(ISTATE)
               DYQDRE= -0.5d0*nQB(ISTATE)*(1.d0 - YQ**2)/RE(ISTATE)
@@ -212,7 +216,8 @@ c*** DBDB & DBDRe= dBeta/dRe  used in uncertainty calculation in fununc.f
               DBDRe(I,ISTATE)= -YP*dLULRedRe
               dVALdRe= DBDRe(I,ISTATE) + (BINF - VAL)*DYPDRE
      1                                   + (1.d0 - YP)*DVAL*DYQDRE
-              IF(RREF(ISTATE).LE.0.d0) DBDRe(I,ISTATE)= dVALdRe
+              IF(RREFP(ISTATE).LE.0.d0) DBDRe(I,ISTATE)= dVALdRe
+              IF(RREFQ(ISTATE).LE.0.d0) DBDRe(I,ISTATE)= dVALdRe
 c-----------------------------------------------------------------------
 c... now the power series and its radial derivatives are used in the
 c    construction of the derivatives  with respect to the parameters

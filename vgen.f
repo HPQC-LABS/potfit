@@ -11,9 +11,8 @@ c                        Waterloo, Ontario, Canada                     +
 c    This software may not be sold or any other commercial use made    +
 c      of it without the express written permission of the authors.    +
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-c               ----- Version of  09 February 2013 -----
-c           (after removal or RREFna, RREFad & RREFw variables!)
-c              (and after replacing NLpow by Nbeta & NSR) 
+c               ----- Version of  29 June 2015 -----
+c          (after allowing p,q,r^p_ref,r^q_ref to be free)
 c                 not finished for DELR - see L. 624 !!!
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** On entry:
@@ -104,15 +103,15 @@ c** Define local variables ...
      2 C6bar,C6adj,C6Pi,C8Pi,C9adj,C8VAL,YP,YQ,YPA,YPB,YQA,YQB,YPE,YPM,
      3 YPMA,YPMB,YPP,YQP,REP,RDp,RDq,DYPDRE,DYQDRE,VAL,DVAL,HReP,HReQ,
      4 yqRe,dyqRedRe,betaRe,DbetaRe,yPOW,dAAdb0,dbetaFX,ULRe,dULRe,
-     4 d2ULRe,SL,SLB,SLBB,AREF,AREFp,AREFq,T0,T1,Scalc,dLULRedRe,
-     5 dLULRedCm(NCMMax),dLULRedDe,dULRdDe,dULRdCm(NCMMax),
-     6 dULRepdCm(NCMMax),dULRedCm(NCMMax),DVDD,RDIST,VDIST,BETADIST,X,
-     7 BFCT,JFCT,JFCTLD,REadAp,REadBp,REadAq,REadBq,REnaAp,REnaBp,
-     8 REnaAq,REnaBq,REwp,dC6dDe,dC9dC3,dC9dC6,dC9dDe,BT,Rinn,Rout,A1,
-     9 A2,A3,B5,xBETA(NbetaMX),rKL(NbetaMX,NbetaMX),C1LIM,BETA0,BETAN,
-     o TM,VATT,DTT,D2TT,dATTdRe,dATTdb,ATT,BTT,REQ,VMIN,REQQ,XRI,dXRI,
-     a fRO,XRIpw,XRO,dXRO,XROpw,ROmp2,dXROdRe,d2XROdRe,DXRIdRe,
-     b d2XRIdRe,dCmp2dRe,EXPBI,BIrat,CMMp2,RMMp2,dAIdRe,
+     4 d2ULRe,SL,SLB,SLBB,AREFp,AREFq,AREFPp,AREFQq,T0,T1,
+     5 Scalc,dLULRedRe,dLULRedCm(NCMMax),dLULRedDe,dULRdDe,
+     6 dULRdCm(NCMMax),dULRepdCm(NCMMax),dULRedCm(NCMMax),DVDD,RDIST,
+     7 VDIST,BETADIST,X,BFCT,JFCT,JFCTLD,REadAp,REadBp,REadAq,REadBq,
+     8 REnaAp,REnaBp,REnaAq,REnaBq,REwp,dC6dDe,dC9dC3,dC9dC6,dC9dDe,BT,
+     9 Rinn,Rout,A1,A2,A3,B5,xBETA(NbetaMX),rKL(NbetaMX,NbetaMX),C1LIM,
+     o BETA0,BETAN,TM,VATT,DTT,D2TT,dATTdRe,dATTdb,ATT,BTT,REQ,VMIN,
+     a REQQ,XRI,dXRI,fRO,XRIpw,XRO,dXRO,XROpw,ROmp2,dXROdRe,d2XROdRe,
+     b DXRIdRe,d2XRIdRe,dCmp2dRe,EXPBI,BIrat,CMMp2,RMMp2,dAIdRe,
      c dBIdRe,VX,dVX,dVdRe,dDeROdRe,dDeRIdRe,
      d dAI(0:NbetaMX),dBI(0:NbetaMX),dCmp2(0:NbetaMX),
      e DEIGM1(1,1),DEIGM3(1,1),DEIGM5(1,1),DEIGR(1,1),DEIGRe(1,1),
@@ -126,10 +125,12 @@ c***********************************************************************
 c** Initializing variables.
       REP= RE(ISTATE)**nPB(ISTATE)
       REQ= RE(ISTATE)**nQB(ISTATE)
-      IF(RREF(ISTATE).LE.0) AREF= RE(ISTATE)
-      IF(RREF(ISTATE).GT.0) AREF= RREF(ISTATE)
-      AREFP= AREF**nPB(ISTATE)
-      AREFQ= AREF**nQB(ISTATE)
+      IF(RREFP(ISTATE).LE.0) AREFP= RE(ISTATE)
+      IF(RREFP(ISTATE).GT.0) AREFP= RREFP(ISTATE)
+      IF(RREFQ(ISTATE).LE.0) AREFQ= RE(ISTATE)
+      IF(RREFQ(ISTATE).GT.0) AREFQ= RREFQ(ISTATE)
+      AREFPp= AREFP**nPB(ISTATE)
+      AREFQq= AREFQ**nQB(ISTATE)
 c** Normally data point starts from 1
       ISTART= 1
       ISTOP= NDATPT(ISTATE)
@@ -173,7 +174,7 @@ c** First ... calculate the Extended Morse Oscillator exponent
               RVAL= RD(I,ISTATE)
               IF(RDIST.GT.0.d0) RVAL= RDIST
               RDQ= RVAL**nQB(ISTATE)
-              YQ= (RDQ - AREFQ)/(RDQ + AREFQ)
+              YQ= (RDQ - AREFQQ)/(RDQ + AREFQQ)
               VAL= BETA(0,ISTATE) 
               DVAL= 0.d0
               DBDB(0,I,ISTATE)= 1.0d0
@@ -202,7 +203,12 @@ c... branch to skip derivatives and inclusion of centrifugal & BOB terms
                   ENDIF
 c... now generate remaining partial derivatives
               YPP= 2.0d0*DE(ISTATE)*XTEMP*(1.d0 - XTEMP)
-              IF(RREF(ISTATE).LE.0.d0) THEN
+              IF(RREFP(ISTATE).LE.0.d0) THEN
+                  DBDRe(I,ISTATE)= -0.5d0*nPB(ISTATE)*(1.d0-YP**2)
+     1                                                *DVAL/RE(ISTATE)
+                  VAL= VAL - (RVAL- RE(ISTATE))*DBDRe(I,ISTATE) 
+                  ENDIF
+              IF(RREFQ(ISTATE).LE.0.d0) THEN
                   DBDRe(I,ISTATE)= -0.5d0*nPB(ISTATE)*(1.d0-YP**2)
      1                                                *DVAL/RE(ISTATE)
                   VAL= VAL - (RVAL- RE(ISTATE))*DBDRe(I,ISTATE) 
@@ -445,11 +451,10 @@ c** Now - generate potential while looping over radial array
               RVAL= RD(I,ISTATE)
               IF(RDIST.GT.0.d0) RVAL= RDIST
               RDp= RVAL**nPB(ISTATE)
-              RDp= RVAL**nPB(ISTATE)
               RDq= RVAL**nQB(ISTATE)
               YPE= (RDp-REP)/(RDp+REP)
-              YP= (RDp-AREFp)/(RDp+AREFp)
-              YQ= (RDq-AREFq)/(RDq+AREFq)
+              YP= (RDp-AREFPp)/(RDp+AREFPp)
+              YQ= (RDq-AREFQq)/(RDq+AREFQq)
               YPM= 1.d0 - YP
               DYPDRE= -0.5d0*nPB(ISTATE)*(1.d0 - YP**2)/RE(ISTATE)
               DYQDRE= -0.5d0*nQB(ISTATE)*(1.d0 - YQ**2)/RE(ISTATE)
@@ -469,7 +474,10 @@ c... now calculate power series part of the MLR exponent
                       ENDDO
 c*** DBDB & DBDRe= dBeta/dRe  used in uncertainty calculation in fununc.f
                   DBDRe(I,ISTATE)= -YP*dLULRedRe
-                  IF(RREF(ISTATE).LE.0.d0) DBDRe(I,ISTATE)= 
+                  IF(RREFP(ISTATE).LE.0.d0) DBDRe(I,ISTATE)= 
+     1                            DBDRe(I,ISTATE)+ (BINF - VAL)*DYPDRE 
+     2                                         + (1.d0-YP)*DVAL*DYQDRE
+                  IF(RREFQ(ISTATE).LE.0.d0) DBDRe(I,ISTATE)= 
      1                            DBDRe(I,ISTATE)+ (BINF - VAL)*DYPDRE 
      2                                         + (1.d0-YP)*DVAL*DYQDRE
                   VAL= YP*BINF + (1.d0- YP)*VAL
@@ -598,10 +606,11 @@ c ... First, save uLR powers & coefficients in 1D arrays
               Cm1D(m)= CmVAL(m,ISTATE)
               ENDDO
 c... then get  AA & BB and their derivatives!
-          yqRe= (REQ - AREFQ)/(REQ + AREFQ)       !! next - dyq/dr @ r_e
-          dyqRedRe = 2.d0*nQB(ISTATE)*REQ*AREFQ/(Re(ISTATE)*
-     1                                               (REQ + AREFQ)**2)
-          IF(RREF(ISTATE).LE.0.d0) dyqRedRe= 0.d0
+          yqRe= (REQ - AREFQQ)/(REQ + AREFQQ)       !! next - dyq/dr @ r_e
+          dyqRedRe = 2.d0*nQB(ISTATE)*REQ*AREFQQ/(Re(ISTATE)*
+     1                                               (REQ + AREFQQ)**2)
+          IF(RREFP(ISTATE).LE.0.d0) dyqRedRe= 0.d0
+          IF(RREFQ(ISTATE).LE.0.d0) dyqRedRe= 0.d0
           betaRe= beta(0,ISTATE)
           DbetaRe= 0.d0                !! this is d{beta}/d{y}  at r= Re
           yPOW= 1.d0
@@ -659,7 +668,7 @@ c** Start by generating the exponent and its derivative w.r.t. yq
               RVAL= RD(I,ISTATE)
               IF(RDIST.GT.0.d0) RVAL= RDIST    !! for calc at onee point
               RDQ= RVAL**NQB(ISTATE)
-              YQ= (RDQ-AREFQ)/(RDQ+AREFQ)
+              YQ= (RDQ-AREFQQ)/(RDQ+AREFQQ)
               YPOW= 1.d0
               npow= NBETA(ISTATE)
 cc            npow= NSR(ISTATE)
@@ -719,7 +728,9 @@ c** Now to calculate the derivative of the potential w.r.t. Re
               DVtot(IPV,I)= betaFX(I,ISTATE)*Btemp 
      1                                 + XTEMP*(dAAdRe*XTEMP - dBBdRe)
               Btemp= (RVAL- RE(ISTATE))*Btemp
-              IF(RREF(ISTATE).LE.0.d0) 
+              IF(RREFP(ISTATE).LE.0.d0) 
+     1             DVtot(IPV,I)= DVtot(IPV,I) - Btemp*DbetaRe*dyqRedRe
+              IF(RREFQ(ISTATE).LE.0.d0) 
      1             DVtot(IPV,I)= DVtot(IPV,I) - Btemp*DbetaRe*dyqRedRe
 c... ** when calculating Cm derivatives, dULRe'/dCm has been excluded ** 
               DO m= 1,NCMM(ISTATE)
@@ -769,7 +780,8 @@ c
 c??? QUESTION ,,, IS the parameter count correct here ?????
 c
               DBDRe(I,ISTATE)= 0.d0
-              IF(RREF(ISTATE).LE.0) DBDRe(I,ISTATE)= 1.d0
+              IF(RREFP(ISTATE).LE.0) DBDRe(I,ISTATE)= 1.d0
+              IF(RREFQ(ISTATE).LE.0) DBDRe(I,ISTATE)= 1.d0
               DBDB(0,I,ISTATE)= 1.0d0
               DO  J= 1, npow
                   DBDB(J,I,ISTATE)= DBDB(J-1,I,ISTATE)*YQ
