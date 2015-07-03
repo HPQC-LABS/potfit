@@ -473,6 +473,12 @@ c... For all cases, except HPP and GPEF (where it doesn't appear), count De
               IPV= IPV+ 1          
               POTPARF(ISTATE)= IPV
               IFXPV(IPV)= IFXRe(ISTATE)   !! rejig for De being param #1
+              IPV= IPV+ 1
+              POTPARF(ISTATE)= IPV
+              IFXPV(IPV)= IFXRRefP(ISTATE) !! RrefP
+              IPV= IPV+ 1
+              POTPARF(ISTATE)= IPV
+              IFXPV(IPV)= IFXRRefQ(ISTATE) !! RrefQ
               ENDIF
           IF((PSEL(ISTATE).GE.2).and.(PSEL(ISTATE).LE.6)) THEN
 c... For MLR, DELR, HPP, TT & HFD forms, count long-range parameters: count Cm's

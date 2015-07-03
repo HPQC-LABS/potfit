@@ -37,7 +37,7 @@ c=======================================================================
       CHARACTER*30 BANDNAME(NPARMX)
       INTEGER NPASS, NALL,ISTATE,IPV,I,I4,ISOT,J,MMN,m,m1,LSR,MMp2,
      1  JSTATE,NUApr,NUBpr,NTApr,NTBpr,IPVRe(NSTATEMX),MMLR1D(NCMMAX),
-     2  VMAXIN(NSTATEMX)
+     2  VMAXIN(NSTATEMX),IPVRrefP(NSTATEMX),IPVRrefQ(NSTATEMX)
       REAL*8 DECM(NSTATEMX),BTEMP,UAT,UBT,SAT,BINF,RE3,RE6,RE8,T0,T1,
      1 DX,DX1,ULRe,C3VAL,C6adj,C9adj,RET,RETSig,RETPi,RETp,RETm,Tm,
      2 VATTRe,dVATTRe,PVSR,ATT,YP,YPP,BT,Rinn,Rout,A1,A2,A3,B5,VX,dVX,
@@ -579,6 +579,38 @@ c-----------------------------------------------------------------------
               WRITE(6,622) 'Re',RE(ISTATE)
             ENDIF
           IF(NPASS.GT.1) WRITE(20,670)RE(ISTATE),IFXRE(ISTATE),'Re','Re'
+c
+c-----------------------------------------------------------------------
+c** Writing out the RrefP and RrefQ information
+c-----------------------------------------------------------------------
+          PV= IPV + 1
+          IPVRrefP(ISTATE) = IPV
+          IF(IFXRREFP(ISTATE).LE.0) THEN
+              IF (DABS(RREFP(ISTATE)).GT.PU(IPV)) THEN
+                  WRITE(6,620) 'Rp',RREFP(ISTATE),PU(IPV),PS(IPV)
+                ELSE
+                  WRITE(6,621) 'Rp',RREFP(ISTATE),PU(IPV),PS(IPV)
+                ENDIF
+            ELSE
+              WRITE(6,622) 'Rp',RREFP(ISTATE)
+            ENDIF
+          IF(NPASS.GT.1) 
+     1     WRITE(20,670)RREFP(ISTATE),IFXRREFP(ISTATE),'RRefP','RRefP'
+c
+          PV= IPV+ 1
+          IPVRrefQ(ISTATE) = IPV
+          IF(IFXRREFQ(ISTATE).LE.0) THEN
+              IF (DABS(RREFQ(ISTATE)).GT.PU(IPV)) THEN
+                  WRITE(6,620) 'Rq',RREFQ(ISTATE),PU(IPV),PS(IPV)
+                ELSE
+                  WRITE(6,621) 'Rq',RREFQ(ISTATE),PU(IPV),PS(IPV)
+                ENDIF
+              ELSE
+c                WRITE(6,222) 'Rq',RREFQ(ISATE) !!don't know why compile
+c time error when this is uncommented!
+              ENDIF
+           IF(NPASS.GT.1) 
+     2      WRITE(20,670)RREFQ(ISTATE),IFXRREFQ(ISTATE),'RrefQ','RrefQ'
 c
           IF((PSEL(ISTATE).GE.2).AND.(PSEL(ISTATE).LE.5)) THEN
 c-----------------------------------------------------------------------

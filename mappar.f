@@ -58,6 +58,10 @@ c*** Manage parameters for potential function mapping ...
                       ENDIF
                   IPV= IPV+ 1
                   PV(IPV)= RE(ISTATE)
+                  IPV= IPV+ 1
+                  PV(IPV)= RREFP(ISTATE)
+                  IPV= IPV+ 1
+                  PV(IPV)= RREFQ(ISTATE)
                   IF((PSEL(ISTATE).GE.2).AND.(PSEL(ISTATE).LE.6)) THEN
                       DO  m= 1,NCMM(ISTATE)
                           IPV= IPV+ 1
@@ -136,6 +140,10 @@ c*** Manage parameters for potential function mappings ...
                       ENDIF
                   IPV= IPV + 1
                   RE(ISTATE) = PV(IPV)
+                  IPV= IPV + 1
+                  RREFP(ISTATE) = PV(IPV)
+                  IPV= IPV + 1
+                  RREFQ(ISTATE) = PV(IPV)
                   IF((PSEL(ISTATE).GE.2).AND.(PSEL(ISTATE).LE.6)) THEN
                       DO  m= 1,NCMM(ISTATE)
                           IPV= IPV+ 1

@@ -63,6 +63,7 @@ c    DVDQA & DVDQB are p.derivs of non-adiabatic fx. wrt q_A(i) & q_B(i)
 c    DTADRe & DTBDRe are p.derivs of non-adiabatic fx. w.r.t.  Re
 c    dVdL & dLDDRe are p.derivatives of f_\lambda(r) w.r.t. beta_i & Re
 c    DBDB & DBDRe are p.derives of beta(r) w.r.t. \beta_i & Re, respectively
+c    dBdRrefP & dBdRrefQ are the p.derives of beta(r) wrt r_ref_p and q
 c
 c** Temp:
 c    BTEMP     is used to represent the sum used for dV/dRe.
@@ -101,21 +102,21 @@ c** Define local variables ...
       REAL*8 BTEMP,BINF,RVAL,RTEMP,RM2,XTEMP,PBTEMP,PETEMP,Btemp2,RMF,
      1 PBtemp2,CmEFF(NCMMax,NSTATEMX),Cm1D(NCMMax),C3VAL,C3bar,C3Pi,
      2 C6bar,C6adj,C6Pi,C8Pi,C9adj,C8VAL,YP,YQ,YPA,YPB,YQA,YQB,YPE,YPM,
-     3 YPMA,YPMB,YPP,YQP,REP,RDp,RDq,DYPDRE,DYQDRE,VAL,DVAL,HReP,HReQ,
-     4 yqRe,dyqRedRe,betaRe,DbetaRe,yPOW,dAAdb0,dbetaFX,ULRe,dULRe,
-     4 d2ULRe,SL,SLB,SLBB,AREFp,AREFq,AREFPp,AREFQq,T0,T1,
-     5 Scalc,dLULRedRe,dLULRedCm(NCMMax),dLULRedDe,dULRdDe,
-     6 dULRdCm(NCMMax),dULRepdCm(NCMMax),dULRedCm(NCMMax),DVDD,RDIST,
-     7 VDIST,BETADIST,X,BFCT,JFCT,JFCTLD,REadAp,REadBp,REadAq,REadBq,
-     8 REnaAp,REnaBp,REnaAq,REnaBq,REwp,dC6dDe,dC9dC3,dC9dC6,dC9dDe,BT,
-     9 Rinn,Rout,A1,A2,A3,B5,xBETA(NbetaMX),rKL(NbetaMX,NbetaMX),C1LIM,
-     o BETA0,BETAN,TM,VATT,DTT,D2TT,dATTdRe,dATTdb,ATT,BTT,REQ,VMIN,
-     a REQQ,XRI,dXRI,fRO,XRIpw,XRO,dXRO,XROpw,ROmp2,dXROdRe,d2XROdRe,
-     b DXRIdRe,d2XRIdRe,dCmp2dRe,EXPBI,BIrat,CMMp2,RMMp2,dAIdRe,
-     c dBIdRe,VX,dVX,dVdRe,dDeROdRe,dDeRIdRe,
-     d dAI(0:NbetaMX),dBI(0:NbetaMX),dCmp2(0:NbetaMX),
-     e DEIGM1(1,1),DEIGM3(1,1),DEIGM5(1,1),DEIGR(1,1),DEIGRe(1,1),
-     f DEIGDe(1,1),DEIGMx(NCMMax,1,1),dULRdR
+     3 YPMA,YPMB,YPP,YQP,REP,RDp,RDq,DYPDRE,DYQDRE,dYPdRREFP,dYQdRREFQ,
+     4 dYPdP,dYQdQ,VAL,DVAL,HReP,HReQ,yqRe,dyqRedRe,betaRe,DbetaRe,yPOW,
+     5 dAAdb0,dbetaFX,ULRe,dULRe,d2ULRe,SL,SLB,SLBB,AREFp,AREFq,AREFPp,
+     6 AREFQq,T0,T1,Scalc,dLULRedRe,dLULRedCm(NCMMax),dLULRedDe,dULRdDe,
+     7 dULRdCm(NCMMax),dULRepdCm(NCMMax),dULRedCm(NCMMax),DVDD,RDIST,
+     8 VDIST,BETADIST,X,BFCT,JFCT,JFCTLD,REadAp,REadBp,REadAq,REadBq,
+     9 REnaAp,REnaBp,REnaAq,REnaBq,REwp,dC6dDe,dC9dC3,dC9dC6,dC9dDe,BT,
+     o Rinn,Rout,A1,A2,A3,B5,xBETA(NbetaMX),rKL(NbetaMX,NbetaMX),C1LIM,
+     a BETA0,BETAN,TM,VATT,DTT,D2TT,dATTdRe,dATTdb,ATT,BTT,REQ,VMIN,
+     b REQQ,XRI,dXRI,fRO,XRIpw,XRO,dXRO,XROpw,ROmp2,dXROdRe,d2XROdRe,
+     c DXRIdRe,d2XRIdRe,dCmp2dRe,EXPBI,BIrat,CMMp2,RMMp2,dAIdRe,
+     d dBIdRe,VX,dVX,dVdRe,dDeROdRe,dDeRIdRe,
+     e dAI(0:NbetaMX),dBI(0:NbetaMX),dCmp2(0:NbetaMX),
+     f DEIGM1(1,1),DEIGM3(1,1),DEIGM5(1,1),DEIGR(1,1),DEIGRe(1,1),
+     g DEIGDe(1,1),DEIGMx(NCMMax,1,1),dULRdR
 c***********************************************************************
 c** Temporary variables for MLR and DELR potentials
       REAL*8 ULR,dAAdRe,dBBdRe,dVdBtemp,CmVALL, Dm(NCMMax),Dmp(NCMMax),
@@ -203,18 +204,21 @@ c... branch to skip derivatives and inclusion of centrifugal & BOB terms
                   ENDIF
 c... now generate remaining partial derivatives
               YPP= 2.0d0*DE(ISTATE)*XTEMP*(1.d0 - XTEMP)
-              IF(RREFP(ISTATE).LE.0.d0) THEN
-                  DBDRe(I,ISTATE)= -0.5d0*nPB(ISTATE)*(1.d0-YP**2)
-     1                                                *DVAL/RE(ISTATE)
-                  VAL= VAL - (RVAL- RE(ISTATE))*DBDRe(I,ISTATE) 
-                  ENDIF
-              IF(RREFQ(ISTATE).LE.0.d0) THEN
-                  DBDRe(I,ISTATE)= -0.5d0*nPB(ISTATE)*(1.d0-YP**2)
-     1                                                *DVAL/RE(ISTATE)
-                  VAL= VAL - (RVAL- RE(ISTATE))*DBDRe(I,ISTATE) 
-                  ENDIF
+c For now ignore the case where r_ref_p or r_ref_q < 0.
+c             IF(RREFP(ISTATE).LE.0.d0) THEN
+c                 DBDRe(I,ISTATE)= -0.5d0*nPB(ISTATE)*(1.d0-YP**2)
+c    1                                                *DVAL/RE(ISTATE)
+c                 VAL= VAL - (RVAL- RE(ISTATE))*DBDRe(I,ISTATE) 
+c                 ENDIF
+c             IF(RREFQ(ISTATE).LE.0.d0) THEN
+c                 DBDRe(I,ISTATE)= -0.5d0*nPB(ISTATE)*(1.d0-YP**2)
+c    1                                                *DVAL/RE(ISTATE)
+c                 VAL= VAL - (RVAL- RE(ISTATE))*DBDRe(I,ISTATE) 
+c                 ENDIF
               IPV= IPV+1
-              DVtot(IPV,I)= -YPP*VAL       !! derivative w.r.t Re 
+              DVtot(IPV,I)= -YPP*VAL       !! derivative w.r.t Re
+c             IPV= IPV+1
+c             DVtot(IPV,I)=                !! derivative w.r.t RrefP  
               YQP= YPP*(RVAL - RE(ISTATE)) 
               DO  J= 0, Nbeta(ISTATE)
                   IPV= IPV+1
@@ -458,6 +462,8 @@ c** Now - generate potential while looping over radial array
               YPM= 1.d0 - YP
               DYPDRE= -0.5d0*nPB(ISTATE)*(1.d0 - YP**2)/RE(ISTATE)
               DYQDRE= -0.5d0*nQB(ISTATE)*(1.d0 - YQ**2)/RE(ISTATE)
+              dYPdRREFP= -0.5d0*nPB(ISTATE)*(1.d0 - YP**2)/RE(ISTATE)
+              dYQdRREFQ= -0.5d0*nQB(ISTATE)*(1.d0 - YQ**2)/RE(ISTATE)
               YPP= 1.d0
               DVAL= 0.d0
               DBDB(0,I,ISTATE)= 1.0d0
@@ -474,12 +480,12 @@ c... now calculate power series part of the MLR exponent
                       ENDDO
 c*** DBDB & DBDRe= dBeta/dRe  used in uncertainty calculation in fununc.f
                   DBDRe(I,ISTATE)= -YP*dLULRedRe
-                  IF(RREFP(ISTATE).LE.0.d0) DBDRe(I,ISTATE)= 
-     1                            DBDRe(I,ISTATE)+ (BINF - VAL)*DYPDRE 
-     2                                         + (1.d0-YP)*DVAL*DYQDRE
-                  IF(RREFQ(ISTATE).LE.0.d0) DBDRe(I,ISTATE)= 
-     1                            DBDRe(I,ISTATE)+ (BINF - VAL)*DYPDRE 
-     2                                         + (1.d0-YP)*DVAL*DYQDRE
+                  dBdRrefP(I,ISTATE)=(BINF-VAL)*dYPdRREFp
+                  dBdRrefQ(I,ISTATE)=(1.d0-YP)*DVAL*dYQdRREFq
+c*** Ignore for now the case where one of the r_ref's is negative:
+c                  IF(RREFP(ISTATE).LE.0.d0) DBDRe(I,ISTATE)= 
+c     1                            DBDRe(I,ISTATE)+ (BINF - VAL)*DYPDRE 
+c     2                                         + (1.d0-YP)*DVAL*DYQDRE
                   VAL= YP*BINF + (1.d0- YP)*VAL
                 ELSE
 c... now calculate Pashov-spline exponent coefficient & its derivatives
@@ -528,7 +534,7 @@ c... branch to skip derivatives and inclusion of centrifugal & BOB terms
                   IF(IDAT.LE.-1) GOTO 999  
                   ENDIF
               YPP= 2.d0*DE(ISTATE)*(1.0d0-XTEMP)*XTEMP
-              IPV= IPVSTART+2
+              IPV= IPVSTART+4
               IF(MMLR(1,ISTATE).LE.0) THEN
 c... derivatives w.r.t long-range parameters for Aubert-Frecon uLR
                   IPV=IPV+1
@@ -550,15 +556,25 @@ c ... should ajdust dV/dC3 for C6{adj} and C9{adj} ... ideally ...
                       ENDIF
                 ENDIF
 c... derivative w.r.t. Re
+c Nike Dattani worries because in his LyX there is another factor, and a
+c negative sign for dLULReRe
               DVtot(IPVSTART+2,I)= YPP*(YPE*DBDRe(I,ISTATE)
      1                                       + VAL*DYPDRE + dLULRedRe)
+c... derivative w.r.t. RrefP
+c Nike Dattani worries because in his LyX there is another factor
+              DVtot(IPVSTART+3,I)=YPP*dBdRrefP(I,ISTATE)  
+c... derivative w.r.t. RrefQ              
+c Nike Dattani worries because in his LyX there is another factor
+              DVtot(IPVSTART+4,I)=YPP*dBdRrefQ(I,ISTATE)
               IF(NSR(ISTATE).GE.0) THEN
 c... derivative w.r.t. De  for 'conventional' power-series exponent
+c Nike Dattani worries because dBdDe was never calculated
                   DVDD= DVDD + YPP*YP*YPE/DE(ISTATE)
                   IF((NCMM(ISTATE).GE.4).AND.(MMLR(2,ISTATE).EQ.0))
 c... derivative w.r.t. De  for Aubert-Frecon 2x2 exponent
      1        DVDD= DVDD+ YPP*((1.d0- YP*YPE)*dLULRedDe - dULRdDe/ULR)
 c... final value of derivative w.r.t. De [ignoring beta(0)]
+c Nike Dattani worries because dBdDe was never calculated
                   DVtot(IPVSTART+1,I)= DVDD
                   YPP= YPP*YPE*(1.d0 - YP)
 
@@ -685,7 +701,7 @@ c** Calculate some temporary variables.
               XTEMP= DEXP(-betaFX(I,ISTATE)*(RVAL-RE(ISTATE)))
 c** Now to calculate uLR and the actual potential function value
               ULR= 0.0d0
-c*** For Aubert-Frecon alkali dimer nS + nP diagonalization u_{LR}(r)
+c*** For Aubert-Frecon alkali dimer nS + mP diagonalization u_{LR}(r)
               IF(MMLR(1,ISTATE).LE.0) THEN
                   CALL AFdiag(RVAL,VLIM(ISTATE),NCMM(ISTATE),NCMMax,
      1                         MMLR1D,Cm1D,rhoAB(ISTATE),IVSR(ISTATE),
@@ -721,6 +737,7 @@ c** Now, calculate the partial derivatives ...
 c-----------------------------------------------------------------------
               IPV= IPVSTART + 1
 c ... first, derivative of the potential w.r.t. De
+c Nike Dattani worries because dBdDe was never calculated
               DVtot(IPV,I)= (XTEMP - 2.0d0)*XTEMP 
 c** Now to calculate the derivative of the potential w.r.t. Re
               Btemp= (2.0d0*AA(ISTATE)*XTEMP - BB(ISTATE))*XTEMP
@@ -776,6 +793,7 @@ c ... finally, derivatives of the potential w.r.t. the \beta_i
                       ENDDO
                   ENDIF
 c *** DBDRe and DBDB is used in uncertainty calculation, see fununc.f
+c why not also dBdDe ? 
 c
 c??? QUESTION ,,, IS the parameter count correct here ?????
 c
