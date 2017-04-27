@@ -556,19 +556,15 @@ c ... should ajdust dV/dC3 for C6{adj} and C9{adj} ... ideally ...
                       ENDIF
                 ENDIF
 c... derivative w.r.t. Re
-c Nike Dattani worries because in his LyX there is another factor, and a
-c negative sign for dLULReRe
+c Nike Dattani worries because in his LyX there is negative sign
               DVtot(IPVSTART+2,I)= YPP*(YPE*DBDRe(I,ISTATE)
      1                                       + VAL*DYPDRE + dLULRedRe)
 c... derivative w.r.t. RrefP
-c Nike Dattani worries because in his LyX there is another factor
-              DVtot(IPVSTART+3,I)=YPP*dBdRrefP(I,ISTATE)  
+              DVtot(IPVSTART+3,I)=YPP*YPE*dBdRrefP(I,ISTATE)  
 c... derivative w.r.t. RrefQ              
-c Nike Dattani worries because in his LyX there is another factor
-              DVtot(IPVSTART+4,I)=YPP*dBdRrefQ(I,ISTATE)
+              DVtot(IPVSTART+4,I)=YPP*YPE*dBdRrefQ(I,ISTATE)
               IF(NSR(ISTATE).GE.0) THEN
 c... derivative w.r.t. De  for 'conventional' power-series exponent
-c Nike Dattani worries because dBdDe was never calculated
                   DVDD= DVDD + YPP*YP*YPE/DE(ISTATE)
                   IF((NCMM(ISTATE).GE.4).AND.(MMLR(2,ISTATE).EQ.0))
 c... derivative w.r.t. De  for Aubert-Frecon 2x2 exponent
