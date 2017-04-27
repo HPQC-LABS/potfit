@@ -1,36 +1,35 @@
 c***********************************************************************
-      SUBROUTINE VGENP(ISTATE,RDIST,VDIST,BETADIST,IDAT,dVdR,d2VdR2)
+      SUBROUTINE VGENP(ISTATE,RDIST,VDIST,dVdR,d2VdR2,IDAT)
 c***********************************************************************
 c** This subroutine will generate function values and derivatives
 c   of Morse/Long-Range potentials as required for semiclassical 
 c   calculation (with quantum corrections) of virial coefficients and
 c   their analytical derivatives in direct hamiltonian fitting
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-c+++  COPYRIGHT 2009-2012  by  R.J. Le Roy, Aleksander Cholewinski 
-c                  and Nikesh S Dattani                               ++
+c+++  COPYRIGHT 2009-2016 by  R.J. Le Roy, Aleksander Cholewinski and ++
+c                      Philip T. Myatt
 c   Dept. of Chemistry, Univ. of Waterloo, Waterloo, Ontario, Canada   +
 c    This software may not be sold or any other commercial use made    +
 c      of it without the express written permission of the authors.    +
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-c           ----- Version of 29 June 2015 -----
-c        (after removal of RREFad & RREFad & RREFw)
+c                   ----- Version of 17 March 2016 -----
+c      (after PTW addition of G-TT and specialized HFD potentials)
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** On entry:
 c   ISTATE  is the electronic state being considered in this CALL.
 c   RDIST:  at the 8 input RDIST(i) distances, calculate potl & derivs
 c     * return potential function at those points as VDIST, and the
 c       first and second radial derivartives as  dVdR  &  d2VdR
-c     * return potential function exponent coefficientw as BETADIS
 c???  * skip partial derivative calculation if  IDAT.le.0
 c     * If RDIST.le.0  calculate partial derivatives at distances
 c             given by array RD(i,ISTATE) & return them in array DVtot
 c** On entry via common blocks:
-c  APSE(s).ge.0  to use {p,q}-type exponent polynomial of order Nbeta(s)
-c     if APSE(s) < 0 \beta(r) is Pashov spline defined by Nbeta(s) points
+c  APSE(s).le.0  to use {p,q}-type exponent polynomial of order Nbeta(s)
+c     if APSE(s) > 0 \beta(r) is Pashov spline defined by Nbeta(s) points
 c* Nbeta(s) is order of the beta(r) exponent polynomial or # spline points
 c    MMLR(j,s)  are long-range inverse-powers for an MLR or DELR potential
-c    nPB(s)  the basic value of power p for the beta(r)  exponent function
-c    nQB(s)  the power p for the power series expansion variable in beta(r)
+c    pPOT(s)  the basic value of power p for the beta(r)  exponent function
+c    qPOT(s)  the power p for the power series expansion variable in beta(r)
 c    pAD(s) & qAD(s) the values of power p for adiabatic u(r) BOB functions
 c    nNA(s) & qNA(s) the values of power p for centrifugal q(r) BOB functions
 c    Qqw(s)  the power defining the radial variable y_{Pqw}(r) in the 
@@ -85,16 +84,15 @@ c** Define local variables ...
      1 FSW,Xtemp2,Btemp2,BMtemp,BMtemp2,RMF,PBtemp2,C3VAL,C3bar,C6bar,
      2 C6adj,C9adj,YP,YQ,YPA,YPB,YQA,YQB,YPE,YPM,YPMA,YPMB,YPP,YQP,YQPA,
      3 YQPB,REp,Req,RDp,RDq,DYPDRE,DYQDRE,VAL,DVAL,HReP,HReQ,SL,SLB,
-     4 AREFP,AREFQ,AREFPp,AREFQq,RE3,RE6,RE8,T0,T0P,T1,ULRe,Scalc,
-     5 dLULRedCm(9),dLULRedRe,dLULRedDe,dULRdDe,dULRdCm(9),RD3,RD6,RD8,
-     6 DVDD,RDIST(8),VDIST(8),BETADIST,BFCT,JFCT,JFCTLD,RETSig,RETPi,
-     7 RETp,RETm,A1,A2,REpADA,REpADB,REqADA,REqADB,D2VAL,dYPdR,A3,X,
-     8 VATT,dVATT,D2VATT,dYPEdR,dYQdR,d2YPdR,d2YQdR,d2YPEdR,RINV,
-     9 dDULRdR,d2DULRdR,dULRdR,d2ULRdR,DXTEMP,D2XTEMP,dVdR(8),d2VdR2(8),
-     o dLULRdR,YPPP,dBdR,d2BdR,
+     4 AREFpp,AREFqq, RE3,RE6,RE8,T0,T0P,T1,ULRe,Scalc,dLULRedCm(9),
+     5 dLULRedRe,dLULRedDe,dULRdDe,dULRdCm(9),RD3,RD6,RD8,DVDD,RDIST(8),
+     6 VDIST(8),BFCT,JFCT,JFCTLD,RETSig,RETPi,RETp,RETm,A0,A1,A2,T2,
+     7 REpADA,REpADB,REqADA,REqADB,D2VAL,dYPdR,A3,X,VATT,dVATT,D2VATT,
+     8 dYPEdR,dYQdR,d2YPdR,d2YQdR,d2YPEdR,RINV,dDULRdR,d2DULRdR,dULRdR,
+     9 d2ULRdR,DXTEMP,D2XTEMP,dVdR(8),d2VdR2(8),dLULRdR,YPPP,dBdR,d2BdR,
      x DX,T1P,T1PP, dULRdRCm(9),dXdP(HPARMX),dXpdP(HPARMX),dLULRdCm(9),
      y DYPEDRE,dVALdRe,dYBdRe,dBpdRe,DYPpDRE,DYPEpdRE,DYQpDRE,dYBpdRe,
-     z xBETA(NbetaMX),rKL(NbetaMX,NbetaMX)
+     z xBETA(NbetaMX),rKL(NbetaMX,NbetaMX),BR,r,bohr,rhoINT,f2,f2p,f2pp
 c***********************************************************************
 c** Common block for partial derivatives of potential at the one distance RDIST
 c   and HPP derivatives for uncertainties
@@ -112,20 +110,18 @@ c** Initializing variables on first entry for each cycle.
 ccc   IF(IDAT.LE.IDATLAST) THEN
 ccc       IDATLAST= IDAT
 ccc put much of the initialization stuff here to be done once per cycle
-
-      REP= RE(ISTATE)**nPB(ISTATE)
-      IF(RREFP(ISTATE).LE.0) AREFP= RE(ISTATE)
-      IF(RREFP(ISTATE).GT.0) AREFP= RREFP(ISTATE)
-      IF(RREFQ(ISTATE).LE.0) AREFQ= RE(ISTATE)
-      IF(RREFQ(ISTATE).GT.0) AREFQ= RREFQ(ISTATE)
-      AREFPp= AREFP**nPB(ISTATE)
-      AREFQq= AREFQ**nQB(ISTATE)
+      DATA bohr/0.52917721092d0/     !! 2010 physical constants d:mohr12
+      REp= RE(ISTATE)**pPOT(ISTATE)
+      REq= RE(ISTATE)**qPOT(ISTATE)
+      AREFpp= RREFp(ISTATE)**pPOT(ISTATE)
+      AREFqq= RREFq(ISTATE)**qPOT(ISTATE)
+      IF(RREFq(ISTATE).LE.0) AREFqq= REq
+      IF(RREFp(ISTATE).LE.0) AREFpp= AREFqq
 c** Normally data point starts from 1
       ISTART= 1
       ISTOP= 8
 c** When calculating only one potential point
-          VDIST= 0.0d0
-          BETADIST= 0.d0
+      VDIST= 0.0d0
       PBTEMP= 0.0d0
       PETEMP= 0.0d0
       DO  I= ISTART,ISTOP
@@ -137,6 +133,12 @@ c** When calculating only one potential point
           UAR(I,ISTATE)= 0.d0
           WRAD(I,ISTATE)= 0.d0
           ENDDO
+      IF((PSEL(ISTATE).GE.2).AND.(rhoAB(ISTATE).GT.0.d0)) THEN
+c ... save uLR powers in a 1D array for calls to SUBROUTINE dampF
+          DO  m= 1, NCMM(ISTATE)
+              MMLR1D(m)= MMLR(m,ISTATE)
+              ENDDO
+          ENDIF
 c** Initialize parameter counter for this state ...
       IPVSTART= POTPARI(ISTATE) - 1
 c=======================================================================
@@ -147,11 +149,7 @@ c** First - define values & derivatives of uLR at Re for MLR potential
           ULRe= 0.d0
           T1= 0.d0
           IF(rhoAB(ISTATE).GT.0.d0) THEN
-c ... save uLR powers in a 1D array
-              DO  m= 1, NCMM(ISTATE)
-                  MMLR1D(m)= MMLR(m,ISTATE)
-                  ENDDO
-              CALL dampF(RE(ISTATE),rhoAB(ISTATE),NCMM(ISTATE),
+              CALL dampF(RE(ISTATE),rhoAB(ISTATE),NCMM(ISTATE),NCMMAX,
      1                  MMLR1D,IVSR(ISTATE),IDSTT(ISTATE),Dm,Dmp,Dmpp)
               ENDIF
           DO  m= 1,NCMM(ISTATE)
@@ -173,24 +171,24 @@ c ... save uLR powers in a 1D array
           DO  I= ISTART,ISTOP
               RVAL(I)= RDIST(I)
               RINV= 1.d0/RVAL(I)
-              RDp= RVAL(I)**nPB(ISTATE)
-              RDq= RVAL(I)**nQB(ISTATE)
+              RDp= RVAL(I)**pPOT(ISTATE)
+              RDq= RVAL(I)**qPOT(ISTATE)
               YPE= (RDp-REP)/(RDp+REP)
-              YP= (RDp-AREFPp)/(RDp+AREFPp)
-              YQ= (RDq-AREFQq)/(RDq+AREFQq)
+              YP= (RDp-AREFpp)/(RDp+AREFpp)
+              YQ= (RDq-AREFqq)/(RDq+AREFqq)
               YPM= 1.d0 - YP
-              DYPDRE= -0.5d0*nPB(ISTATE)*(1.d0 - YP**2)/RE(ISTATE)
-              DYQDRE= -0.5d0*nQB(ISTATE)*(1.d0 - YQ**2)/RE(ISTATE)
-              DYPEDRE= -0.5d0*nPB(ISTATE)*(1.d0 - YPE**2)/RE(ISTATE)
+              DYPDRE= -0.5d0*pPOT(ISTATE)*(1.d0 - YP**2)/RE(ISTATE)
+              DYQDRE= -0.5d0*qPOT(ISTATE)*(1.d0 - YQ**2)/RE(ISTATE)
+              DYPEDRE= -0.5d0*pPOT(ISTATE)*(1.d0 - YPE**2)/RE(ISTATE)
               DYPDR= -DYPDRE*RE(ISTATE)*RINV
-              DYPEDR= 0.5d0*nPB(ISTATE)*RINV*(1.d0 - YPE**2)
+              DYPEDR= 0.5d0*pPOT(ISTATE)*RINV*(1.d0 - YPE**2)
               DYQDR= -DYQDRE*RE(ISTATE)*RINV
-              D2YPDR= -DYPDR*RINV*(1.d0 + nPB(ISTATE)*YP)
-              D2YPEDR= -DYPEDR*RINV*(1.d0 + nPB(ISTATE)*YPE)
-              D2YQDR= -DYQDR*RINV*(1.d0 + nQB(ISTATE)*YQ)
-              DYPpDRE= -nPB(ISTATE)*YP*RINV*DYPDRE
-              DYPEpDRE= -nPB(ISTATE)*YPE*RINV*DYPEDRE
-              DYQpDRE= -nQB(ISTATE)*YQ*RINV*DYQDRE
+              D2YPDR= -DYPDR*RINV*(1.d0 + pPOT(ISTATE)*YP)
+              D2YPEDR= -DYPEDR*RINV*(1.d0 + pPOT(ISTATE)*YPE)
+              D2YQDR= -DYQDR*RINV*(1.d0 + qPOT(ISTATE)*YQ)
+              DYPpDRE= -pPOT(ISTATE)*YP*RINV*DYPDRE
+              DYPEpDRE= -pPOT(ISTATE)*YPE*RINV*DYPEDRE
+              DYQpDRE= -qPOT(ISTATE)*YQ*RINV*DYQDRE
               D2VAL= 0.d0
               YPP= 1.d0
               DVAL= 0.d0
@@ -216,8 +214,7 @@ c*** DBDB & DBDRe= dBeta/dRe  used in uncertainty calculation in fununc.f
               DBDRe(I,ISTATE)= -YP*dLULRedRe
               dVALdRe= DBDRe(I,ISTATE) + (BINF - VAL)*DYPDRE
      1                                   + (1.d0 - YP)*DVAL*DYQDRE
-              IF(RREFP(ISTATE).LE.0.d0) DBDRe(I,ISTATE)= dVALdRe
-              IF(RREFQ(ISTATE).LE.0.d0) DBDRe(I,ISTATE)= dVALdRe
+              IF(RREFq(ISTATE).LE.0.d0) DBDRe(I,ISTATE)= dVALdRe
 c-----------------------------------------------------------------------
 c... now the power series and its radial derivatives are used in the
 c    construction of the derivatives  with respect to the parameters
@@ -244,8 +241,8 @@ c-------------------------------------------------------------------
               dULRdRCm= 0.d0
 c~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
               IF(rhoAB(ISTATE).GT.0.d0) THEN
-                  CALL dampF(RVAL(I),rhoAB(ISTATE),NCMM(ISTATE),MMLR1D,
-     1                         IVSR(ISTATE),IDSTT(ISTATE),Dm,Dmp,Dmpp)
+                  CALL dampF(RVAL(I),rhoAB(ISTATE),NCMM(ISTATE),NCMMAX,
+     1                  MMLR1D,IVSR(ISTATE),IDSTT(ISTATE),Dm,Dmp,Dmpp)
                   ENDIF
               DO  m= 1,NCMM(ISTATE)
                   IF(rhoAB(ISTATE).LE.0.d0) THEN
@@ -279,7 +276,7 @@ c... note ... reference energy for each state is asymptote ...
 c---      VPOT(I,ISTATE)= DE(ISTATE)*DVDD + VLIM(ISTATE)
 c---      VDIST(I)= VPOT(I,ISTATE)
               VDIST(I)= DE(ISTATE)*DVDD + VLIM(ISTATE)
-              BETADIST= VAL
+c             BETADIST= VAL
               IF(IDAT.LE.0) GO TO 999
 c-              ENDDO
               YPP= 2.d0*DE(ISTATE)*(1.0d0-XTEMP)*XTEMP
@@ -340,51 +337,133 @@ c... finally ... derivatives w.r.t. exponent expansion coefficients
               ENDDO
           ENDIF
 c-----------Finished calculations for MLR potential
-
-c=======================================================================
-c Second ... for the case of an Aziz'ian HFD-C potential ...
-c-----------------------------------------------------------------------
+ 
+C======================================================================
+c For the Tang Toennies potential 
+c----------------------------------------------------------------------
       IF(PSEL(ISTATE).EQ.6) THEN
-          A1= BETA(0,ISTATE)
-          A2= BETA(1,ISTATE)
-          A3= BETA(2,ISTATE)
-          DO  I= ISTART, ISTOP
-              X= RD(I,ISTATE)/RE(ISTATE)
+          rhoINT= rhoAB(ISTATE)/3.13d0     !! remove btt(IVSR(ISTATE)/2)
+          DO I= 1,8
               VATT= 0.d0
               dVATT= 0.d0
+              d2VATT= 0.d0
+              r= RDIST(I)
+              IF(rhoAB(ISTATE).GT.0.d0) THEN
+                  CALL dampF(r,rhoINT,NCMM(ISTATE),NCMMAX,
+     1                    MMLR1D,IVSR(ISTATE),IDSTT(ISTATE),Dm,Dmp,Dmpp)
+                  DO m= 1,NCMM(ISTATE)
+                      T0= CMval(m,ISTATE)/r**MMLR1D(m)
+                      VATT= VATT + T0*Dm(m)
+                      dVATT= dVATT + T0*(Dmp(m) - Dm(m)*MMLR1D(m)/r)
+                      d2VATT= d2VATT + T0*(Dmpp(m) - MMLR1D(m)*(2.d0*
+     1                               Dmp(m)- Dm(m)*(MMLR1D(m)+1)/r)/r)
+                      ENDDO
+                ELSE
+                  DO m= 1,NCMM(ISTATE)
+                      T0= CMval(m,ISTATE)/r**MMLR1D(m)
+                      VATT= VATT + T0
+                      dVATT= dVATT + T0*MMLR1D(m)/r
+                      d2VATT= d2VATT + T0*MMLR1D(m)*(MMLR1D(m)+1)/r**2
+                      ENDDO
+                  ENDIF
+              T0= r*(BETA(1,ISTATE) + r*BETA(2,ISTATE))
+     1                         + (BETA(3,ISTATE) + BETA(4,ISTATE)/r)/r
+              T1= BETA(1,ISTATE) + 2.d0*r*BETA(2,ISTATE)
+     1                 - (BETA(3,ISTATE) + 2.d0*BETA(4,ISTATE)/r)/r**2
+              T2= 2*BETA(2,ISTATE) + (2.d0*BETA(3,ISTATE) 
+     1                                   + 6.d0*BETA(4,ISTATE)/r)/r**3
+              A0= BETA(5,ISTATE) + r*(BETA(6,ISTATE) 
+     1                       + r*(BETA(8,ISTATE) + r*BETA(9,ISTATE)))
+     2                                              + BETA(7,ISTATE)/r
+              A1= BETA(6,ISTATE) + r*(2.d0*BETA(8,ISTATE)  
+     1                  + 3.d0*r*BETA(9,ISTATE)) - BETA(7,ISTATE)/r**2
+              A2= 2.d0*BETA(8,ISTATE)+ 6.d0*r*BETA(9,ISTATE)
+     1                                      + 2.d0*BETA(7,ISTATE)/r**3
+              DX= A0*EXP(-T0)
+              VDIST(I)= DX - VATT
+              dVdr(I)= DX*(A1/A0 - T1) - dVATT
+              d2VdR2(I)= DX*((A2- 2.d0*T1*A1)/A0+ T1**2- T2) - d2VATT
+              ENDDO
+          ENDIF
+c=======================================================================
+c ....... for the case of an Aziz'ian HFD-ABC potential ...
+c-----------------------------------------------------------------------
+      IF((PSEL(ISTATE).EQ.7).AND.(Nbeta(ISTATE).EQ.5)) THEN
+          A1= BETA(1,ISTATE)
+          A2= BETA(2,ISTATE)
+          A3= BETA(3,ISTATE)
+          DO  I= 1,8
+              r= RDIST(I)
+              X= RDIST(I)/RE(ISTATE)
+              VATT= 0.d0
+              dVATT= 0.d0
+              d2VATT= 0.d0
               T1= 1.d0
               T1P= 0.d0
               T1PP= 0.d0
-              IF(X.LT.A2) THEN
-                  T1= EXP(-(A2/X - 1.d0)**A3)
-                  T1P= 2.d0*(A2**2/X**3 - A2/(X*X))
-                  T1PP= (T1P*T1P - 6.d0*(A2*A2/X**4 + 4.d0*A2/X**3))
+              IF(r.LT.A2) THEN
+                  T1= EXP(-A1*(A2/r - 1.d0)**A3)
+                  T1P= (A1*A2*A3/(r**2))*((A2/r)-1.d0)**(A3-1.d0)
+                  T1PP= T1P*T1P - (A1*A2*A3/r**3)*(A2*(A3-1.d0)/r)
+     1       *((A2/r)-1.d0)**(A3-2.d0) - 2.d0*((A2/r)-1.d0)**(A3-1.d0)
                   T1P= T1*T1P
                   T1PP= T1*T1PP
                   ENDIF
               DO M= 1,NCMM(ISTATE)
-                   T0= T1*CmVAL(m,ISTATE)/X**MMLR(m,ISTATE)
-                   VATT= VATT+ T0
-                   dVATT= dVATT + (T1P - MMLR(m,ISTATE)*T1/X)*T0
-                   d2VATT= d2VATT + (T1PP - (2*T1P - T1*(MMLR(m,ISTATE)
-     1                                    + 1.d0)/X)*MMLR(m,ISTATE))/X
+                   T0= (CmVAL(m,ISTATE)/r**MMLR(m,ISTATE))
+                   VATT= VATT+ T0*T1
+                   dVATT= dVATT+ (T1P-MMLR(m,ISTATE)*T1/r)*T0
+                   d2VATT= d2VATT + (T1PP-2.d0*(T1P*MMLR(m,ISTATE)/r) + 
+     1                T1*((MMLR(m,ISTATE)**2)+MMLR(m,ISTATE))/(r**2))*T0
                    ENDDO 
-              DX= AA(ISTATE)*X**BETA(4,ISTATE)
-     1                        *EXP(-X*(BB(ISTATE) + X*BETA(3,ISTATE)))
-              VDIST(I)= DX - DE(ISTATE)*VATT
-              T0= BETA(4,ISTATE)/X - BB(ISTATE)- 2.d0*X*BETA(3,ISTATE)
-              dVdR(I)= (DX*T0 - DVATT*DE(ISTATE))/RE(ISTATE)
-              d2VdR2(I)= -(DX*(T0**2 - BETA(4,ISTATE)/X**2 
-     1        -2.d0*BETA(3,ISTATE)) - d2VATT*DE(ISTATE))/RE(ISTATE)**2
+              DX= AA(ISTATE)*(X**BETA(5,ISTATE))*EXP(-r*(BB(ISTATE)
+     1                                            + r*BETA(4,ISTATE)))
+              VDIST(I)= DX - VATT
+              T0= BETA(5,ISTATE)/r - BB(ISTATE)- 2.d0*r*BETA(4,ISTATE)
+              dVdR(I)= DX*T0 - DVATT
+              d2VdR2(I)= DX*(T0**2 - BETA(5,ISTATE)/r**2 
+     1                                 - 2.d0*BETA(4,ISTATE)) - d2VATT
               ENDDO
           ENDIF
-ccccc Print for testing
-cc        rewind(10)
-cc        write(10,610) (RD(i,ISTATE),vpot(i,istate),BETAFX(i,istate),
-cc   1                                        i= 1, ISTART,ISTOP)
-cc610 FORMAT(/(f10.4,f15.5,f12.6))
-ccccc End of Print for testing
-
+c=======================================================================
+c... Finally ...For the case of an Aziz'ian HFD-ID potential ...
+C-----------------------------------------------------------------------
+      IF((PSEL(ISTATE).EQ.7).AND.(Nbeta(ISTATE).EQ.2)) THEN
+          A1= BETA(1,ISTATE)
+          A2= BETA(2,ISTATE)
+          DO  I= ISTART,ISTOP
+              r= RDIST(I)
+              CALL dampF(r,rhoAB(ISTATE),NCMM(ISTATE),NCMMAX,MMLR1D,
+     1                         IVSR(ISTATE),IDSTT(ISTATE),DM,DMP,DMPP)
+              X= r/RE(ISTATE)
+              BR= RHOab(ISTATE)*r
+              VATT= 0.d0
+              dVATT= 0.d0
+              D2VATT= 0.d0
+              f2= (BR/bohr)**1.68d0 *EXP(-0.78d0*BR/bohr)
+              f2p= 1.68d0/r - 0.78d0*RHOab(ISTATE)/bohr
+              f2pp= - f2*(f2p**2 - 1.68d0/(r**2))
+              f2p= -f2*f2p
+              f2= 1.d0 - f2
+              VATT= 0.d0
+              dVATT= 0.d0
+              d2VATT= 0.d0
+              DO m= 1,NCMM(ISTATE)
+                  T0= CmVAL(m,ISTATE)/r**MMLR1D(m)
+                  VATT= VATT+ T0*DM(m)
+                  dVATT= dVATT+ T0*(f2p*DM(m)+ f2*(DMP(m) -
+     1                                       DM(m)*(MMLR1D(m)/r)))
+                  d2VATT= d2VATT + T0*(f2pp*DM(m)+ f2*DMPP(m) + 
+     1     2.d0*f2p*DMP(m) - 2.d0*(f2p*DM(m) + f2*DMP(m)*(MMLR1D(m)/r))
+     2                     + f2*DM(m)*MMLR1D(m)*(MMLR1D(m)+ 1.d0)/r**2)
+                  ENDDO
+              DX= AA(ISTATE)*(X**A2)*EXP(-r*(BB(ISTATE) + r*A1))
+              VDIST(I)= DX - f2*VATT
+              T0= A2/r - BB(ISTATE) - 2.d0*r*A1
+              dVdR(I)= DX*T0 - dVATT
+              d2VdR2(I)= DX*(T0**2 - A2/r**2 - 2.d0*A1) - d2VATT
+              ENDDO
+          ENDIF
       IF((NUA(ISTATE).GE.0).OR.(NUB(ISTATE).GT.0)) THEN
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** Treat any 'adiabatic' BOB radial potential functions here ...
@@ -478,7 +557,6 @@ c ... and derivative of UB w.r.t. Re ...
               ENDDO
           ENDIF
 c++++ END of treatment of adiabatic potential BOB function++++++++++++++
-
       IF((NTA(ISTATE).GE.0).OR.(NTB(ISTATE).GE.0)) THEN
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** Treat any 'non-adiabatic' centrifugal BOB functions here ...
@@ -563,7 +641,6 @@ c ... and derivative of TB w.r.t. Re ...
               ENDDO
           ENDIF
 c++++ END of treatment of non-adiabatic centrifugal BOB function++++++++
-
       IF(NwCFT(ISTATE).GE.0) THEN
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** Treat any Lambda- or 2\Sigma-doubling radial strength functions here
@@ -599,7 +676,6 @@ c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
               ENDDO
           ENDIF
 c++++ END of treatment of Lambda/2-sigma centrifugal BOB function+++++++
-
 c++++ Test for inner wall inflection above the asymptote, and if it ++++
 c++++ occurs, replace inward potential with linear approximation +++++++
 cc    I1= (RE(ISTATE)-RD(1,ISTATE))/(RD(2,ISTATE)-RD(1,ISTATE))
@@ -621,7 +697,6 @@ cc 66 CONTINUE
 cc606 FORMAT(9('===')/'!!!! Extrapolate to correct ',A3,' inner-wall inf
 cc   1lection at   R=',f6.4,'   V=',f8.0/9('==='))
 c++++++++++++End of Inner Wall Test/Correction code+++++++++++++++++++++
-
 c======================================================================
 c** At the one distance RDIST calculate total effective potential VDIST
 c  including (!!) centrifugal and Lambda/2Sigma doubling terms,
@@ -640,7 +715,7 @@ cccccccc
           BFCT= 16.857629206d0/(ZMASS(3,IISTP)*RDIST(I)**2)
           JFCT= DBLE(JPP(IDAT)*(JPP(IDAT)+1))
           IF(IOMEG(ISTATE).GT.0) JFCT= JFCT - IOMEG(ISTATE)**2
-          IF(IOMEG(ISTATE).EQ.-2) JFCT= JFCT + 2.D0
+          IF(IOMEG(ISTATE).EQ.-2) JFCT= JFCT + 2.D0   !! ?? for Li2(A,c)???
           JFCT= JFCT*BFCT
 c ... First get total effective potential, including BOB terms
           VDIST(I)= VDIST(I) + JFCT
@@ -710,3 +785,4 @@ c*****7********************** BLOCK END ******************************72
   999 RETURN
       END
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
+

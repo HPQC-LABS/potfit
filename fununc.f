@@ -22,7 +22,7 @@ c-----------------------------------------------------------------------
       INTEGER I,J,JJ,ISTATE,LAM2,NBETAI
       REAL*8 FU,FLAM,RHT,RMAXT,RDVAL,RDVAL2,RDVALLD, PU(NPARMX),
      1  PT(NPARMX),CM(NPARMX,NPARMX) 
-      CHARACTER*20 WRITFILE
+      CHARACTER*40 WRITFILE
 c
 c------------------------------------------------------------------------
 c*** Common Block info for  fununc  calculations ***********************  
@@ -43,7 +43,7 @@ c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       WRITE(11,900) 'B(r) ', ISTATE, 'B(r) ', WRITFILE
       DO I= 1,nPointSR(ISTATE),MAX(1,IABS(OSEL(ISTATE))/10)
           WRITE(10,909) Rsr(I,ISTATE),Vsr(I,ISTATE)
-ccc       WRITE(11,909) Rsr(I,ISTATE),Bsr(I,ISTATE)
+          WRITE(11,909) Rsr(I,ISTATE),Bsr(I,ISTATE)
           END DO
       IF(OSEL(ISTATE).LT.0) THEN 
           IF(NUA(ISTATE).GE.0) WRITE(12,900) 'UA(r)',ISTATE,'UA(r)',
@@ -77,14 +77,14 @@ c ... first ... the potential function itself ...
      1           CALL MMCALC(POTPARI(ISTATE),POTPARF(ISTATE),PT,CM,FU)
           WRITE(10,910) RDVAL,VPOT(I,ISTATE),FU
 c ... then the exponent coefficient function \betai(i)
-ccc       IF(PSEL(ISTATE).LE.5) THEN
-ccc           DO  J= NBETAI,POTPARF(ISTATE)
-ccc               JJ= J-NBETAI
-ccc               PT(J)= PU(J)*DBDB(JJ,I,ISTATE)
-ccc               ENDDO
-ccc           CALL MMCALC(NBETAI,POTPARF(ISTATE),PT,CM,FU)
-ccc           WRITE(11,910) RDVAL,BETAFX(I,ISTATE),FU
-ccc           ENDIF
+          IF(PSEL(ISTATE).LE.5) THEN
+              DO  J= NBETAI,POTPARF(ISTATE)
+                  JJ= J-NBETAI
+                  PT(J)= PU(J)*DBDB(JJ,I,ISTATE)
+                  ENDDO
+              CALL MMCALC(NBETAI,POTPARF(ISTATE),PT,CM,FU)
+              WRITE(11,910) RDVAL,BETAFX(I,ISTATE),FU
+              ENDIF
 c ... adiabatic BOB correction function for atom-A
           IF(OSEL(ISTATE).LT.0) THEN
               IF(NUA(ISTATE).GE.1) THEN
@@ -136,9 +136,9 @@ c ... Lambda/doublet-sigma doubling correction radial function
       RETURN
 c-----------------------------------------------------------------------
   900 FORMAT(/'variables = "r", "',A5,'", "Uncertainty"'/
-     1'zone T = "State',I2,1x,A5,2x,A20,'"',/)
+     1'zone T = "State',I2,1x,A5,2x,A40,'"',/)
   902 FORMAT(/'variables = "r", "',A9,'", "Uncertainty"'/
-     1'zone T = "State',I2,2x,A9,2x,A20,'"',/)
+     1'zone T = "State',I2,2x,A9,2x,A40,'"',/)
   909 FORMAT(F12.6,1x,1PD22.13,5X,'0.0')
   910 FORMAT(F12.6,1x,1PD22.13,D11.3)
       END
@@ -172,3 +172,4 @@ c** Complete calculation of the uncertainty of the function.
       RETURN
       END
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
+

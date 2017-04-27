@@ -1,11 +1,11 @@
 c***********************************************************************
-        PROGRAM DPotFit
+        PROGRAM dPotFit
 c***********************************************************************
-c** Program "D(iatomic)Pot(ential)Fit" (DPotFit) for performing least-
+c** Program "D(iatomic)Pot(ential)Fit" (dPotFit) for performing least-
 c   squares fits of diatomic spectral data to molecular potential
 c   energy functions for one or multiple electronic states.
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-c+++   COPYRIGHT 2006-2013  by R.J. Le Roy, J.Y. Seto and Y. Huang   +++
+c++++++++++   COPYRIGHT 2006-2016  by R.J. Le Roy, +++++++++++++++++++++
 c   Dept. of Chemistry, Univ. of Waterloo, Waterloo, Ontario, Canada   +
 c    This software may not be sold or any other commercial use made    +
 c      of it without the express written permission of the authors.    +
@@ -18,7 +18,7 @@ c    input data set consisting of diatomic singlet-singlet transitions,
 c    and calculate deviations [calc.-obs.]
 c (ii)  Fit a data set made up of any combination of MW, IR or
 c    electronic vibrational bands, and/or fluorescence series, involving
-c    one or more electronic states and one or more isotopomers, to
+c    one or more electronic states and one or more isotopologues, to
 c    parameters defining the observed levels of each state.
 c=======================================================================
 c** Dimensioning parameters intrinsic to the program are input through
@@ -41,13 +41,13 @@ c   and HPP derivatives for uncertainties
       REAL*8 dVdPk(HPARMX),dDe(0:NbetaMX),dDedRe
       COMMON /dVdPkBLK/dVdPk,dDe,dDedRe
 c=======================================================================
-      CHARACTER*40 DATAFILE,MAKEPRED
-      CHARACTER*24 WRITFILE,TVNAME(NPARMX)
-      CHARACTER*27 FN4,FN6,FN7,FN8,FN10,FN11,FN12,FN13,FN14,FN15,FN16,
+      CHARACTER*40 DATAFILE,MAKEPRED,WRITFILE
+      CHARACTER*24 TVNAME(NPARMX)
+      CHARACTER*40 FN4,FN6,FN7,FN8,FN10,FN11,FN12,FN13,FN14,FN15,FN16,
      1   FN17,FN20,FN22,FN30
 cc   1                                                     ,FN32
       INTEGER*4 lnblnk
-      INTEGER I,J,ISTATE,ISOT,CHARGE,CHARGE1,CHARGE2,CHARGE3,IPV,
+      INTEGER I,J,ISTATE,ISOT,CHARGE,hCHARGE1,hCHARGE2,CHARGE3,IPV,
      1 MKPRED,PRINP,PASok(NSTATEMX),NDAT(0:NVIBMX,NISTPMX,NSTATEMX),
      2 NTVSTATE,NTVSSTAT,NTVSTOT,VMAXIN(NSTATEMX)
       REAL*8 UCUTOFF,ZMASE,HZMASE,DECM(NSTATEMX)
@@ -57,12 +57,12 @@ c
 c                                                      
 c** Parameters required for NLLSSRR.
 c
-      INTEGER NPTOT,CYCMAX,IROUND,ROBUST,LPRINT,SIROUND,NFPAR,uBv,
-     1  IFXPV(NPARMX),SIFXPV(NPARMX)
+      INTEGER NPTOT,CYCMAX,CYCMX1,IROUND,ROBUST,LPRINT,SIROUND,NFPAR,
+     1  uBv,IFXPV(NPARMX),SIFXPV(NPARMX)
       REAL*8 PV(NPARMX),PU(NPARMX),PS(NPARMX),CM(NPARMX,NPARMX),
      1  PUSAV(NPARMX),PSSAV(NPARMX),TSTPS,TSTPU,DSE
 c-----------------------------------------------------------------------
-c** Set type statements for unused MASSES variables.
+c** Set type statements for (unused) MASSES variables.
 c
       CHARACTER*2  CATOM
       INTEGER GELGS(2,NISTPMX),GNS(2,NISTPMX)
@@ -82,17 +82,19 @@ c
 c-----------------------------------------------------------------------
 c************************** misc. other variables **********************
       REAL*8 RDIST,VDIST,BETADIST,RMAXT,RHT,RHL
-      INTEGER NCNN
-      DATA ZMASE /5.4857990945D-04/
+      INTEGER NCNN,NBCTOT
+      DATA ZMASE /5.4857990946D-04/    !! 2010 physical constants d:mohr12
       DATA MAKEPRED/'MAKEPRED'/
 c=======================================================================
+      CYCMX1= 2                    !! CYCMAX for linear fits
       HZMASE= 0.5d0*ZMASE
-      SLABL(-5)='VSS'           !! data type not yet defined
-      SLABL(-4)='VIR'              
-      SLABL(-3)='VVV'
-      SLABL(-2)='WID'
-      SLABL(-1)='PAS'
-      SLABL(0)='FLS'
+      SLABL(-6)= '   '             !! data type not yet defined
+      SLABL(-5)='VAC'              !! Acoustic Virial Coefficient
+      SLABL(-4)='VIR'              !! Pressure Virial Coefficients  
+      SLABL(-3)='VVV'              !! potential function values
+      SLABL(-2)='WID'              !! tunneling level widths
+      SLABL(-1)='PAS'              !! Photo-Association binding energies
+      SLABL(0)='FLS'               !! fluorescence series
 c** uncertainties for data involving Quasibound level increased  
 c   by  Fqb*width to DSQRT{u(_i;exp)**2 + (Fqb*width)**2}
       Fqb= 0.20d0
@@ -122,9 +124,9 @@ c
 c  CHARGE (+/- integer) is the charge on the molecule (=0 for neutral).
 c  If(CHARGE.ne.0) use Watson's(JMS 1980) charge-modified reduced mass
 c  (default case), OR assign gained/lost electrons masses (in units of
-c   {m_e/2}) to one particle or the other using integers CHARGE1 & CHARGE2
+c   {m_e/2}) to one particle or the other using integers hCHARGE1 & hCHARGE2
 c
-c  NISTP   is the number of isotopomers to be simultaneously considered.
+c  NISTP   is the number of isotopologues to be simultaneously considered.
 c
 c  NSTATES  is the number of electronic states associated with the data
 c        set to be analysed:  NSTATES = 1  for fits to IR/MW and/or
@@ -148,6 +150,10 @@ c**  IF |PRINP|=2 READ  title BANDNAME(IBAND) for each Band/Series on 1'st
 c    line of input for that series and print it at the end of 'summary'
 c    file for that series in the Channels 6 & 8 output.
 c
+c** For |CHARGE|.ne. 0: option to distribute missing/added e^- mass(es) 
+c   Read # half-electron-masses to be added to/subtracted from standard
+c   atomic masses to create standard 2-body reduced mass  m1*m2/(m1+m2)
+c   For Watson's charge-adjusted reduced mass, set  hCHARGE1= hCHARGE2= 0
 c  DATAFILE  is the (character variable) name of the file containing the
 c     experimental data to be used in the fit.  If it is not located in
 c     the current directory, the name 'DATAFILE' must include the
@@ -165,11 +171,12 @@ c     relative path.  The valiable name may (currently) consist of up to
 c     40 characters, enclosed in single quotes, with no leading spaces.
 c=======================================================================
       READ(5,*)  AN(1), AN(2), CHARGE, NISTP, NSTATES, LPRINT, PRINP
+      IF(IABS(CHARGE).NE.0) READ(5,*) hCHARGE1, hCHARGE2
       READ(5,*)  DATAFILE
       READ(5,*)  WRITFILE
 c=======================================================================
-c** These statements construct and define the names of output files
-c   associated with WRITE's to channels 6-10 used by the program.
+c** Now construct and define the names of output files associated with 
+c   WRITE's to channels 6, 7, 8, 20, 22 & 30 used by the program.
       WRITE(FN6,'(2A)') WRITFILE(1:lnblnk(WRITFILE)),'.6'
       WRITE(FN7,'(2A)') WRITFILE(1:lnblnk(WRITFILE)),'.7'
       WRITE(FN8,'(2A)') WRITFILE(1:lnblnk(WRITFILE)),'.8'
@@ -182,41 +189,36 @@ c   associated with WRITE's to channels 6-10 used by the program.
       OPEN(UNIT=20,FILE=FN20)
       OPEN(UNIT=22,FILE=FN22)
       OPEN(UNIT=30,FILE=FN30)
+c for a molecular ion, printout re. placement of +/- e^- mass(es)
       CHARGE3= 0
-      IF(IABS(CHARGE).NE.0) THEN
-c** Read # half-electron-masses to be added to/subtracted from standard
-c   atomic masses to create standard 2-body reduced mass  m1*m2/(m1+m2)
-c   For Watson's charge-adjusted reduced mass, set  CHARGE1= CHARGE2= 0
-c=======================================================================
-          READ(5,*) CHARGE1, CHARGE2
-c=======================================================================
-          CHARGE3= CHARGE1 + CHARGE2
-          IF((CHARGE1.NE.0).OR.(CHARGE2.NE.0)) THEN
+      IF(CHARGE.NE.0) THEN
+          CHARGE3= hCHARGE1 + hCHARGE2
+          IF((hCHARGE1.NE.0).OR.(hCHARGE2.NE.0)) THEN
 c** If wish to add/subtract e- mass(es) to atomic mass of ions .....
               IF(CHARGE3.NE.2*CHARGE) THEN
-c,,, if adding particle charges don't give total charge ... ERROR & STOP
-                  WRITE(6,605) CHARGE1,CHARGE2,CHARGE
-                  STOP
+c,,, if adding particle charges don't give total charge ... Print WARNING
+                  WRITE(6,605) hCHARGE1,hCHARGE2,CHARGE
+ccc               STOP
                   ENDIF
-              WRITE(6,606) CHARGE1,CHARGE2,CHARGE1,CHARGE2
+              WRITE(6,606) hCHARGE1,hCHARGE2,hCHARGE1,hCHARGE2
             ELSE
               WRITE(6,607) 
             ENDIF  
           ENDIF
       WRITE(6,601) NISTP
-  606 FORMAT('  Reduced masses are based on atoms with charges',SP,I3,
-     1 '/2  and',I3,'/2, respectively,'/20x,'with subtraction/addition o
-     1f',SS,I2,' and',I2,' half-electron masses.')
-  605 FORMAT(' *** ERROR *** atomic charges',SP,I3,'/2  and',I3,"/2   do
-     1n't add up to total  CHARGE=",I3/10x,' !!! so STOP !!!!')
+  606 FORMAT('  Reduced masses below are based on atoms 1 & 2 with charg
+     1es (',SP,I2,'/2) and (',I2,'/2),'/8x,'respectively, with subtracti
+     2on/addition of',SS,I2,' and',I2,' half-electron masses.'/)
+  605 FORMAT(' *** WARNING *** atomic charges',SP,I3,'/2  and',I3,"/2   
+     1don't add up to total  CHARGE=",I3/10x,' !!! so STOP ????')
   607 FORMAT("  Reduced masses are Watson's charge-modified reduced mass
      1 for diatomic ions"/)
 c
       DO  ISOT= 1,NISTP
-c** Loop to read the mass numbers of the atoms in each of the isotopomers
+c** Loop to read the mass numbers of the atoms in each of the isotopologues
 c  MN(i,ISOT)  is the mass number for atom with atomic number AN(i)
 c       [NOTE: be sure order of MN values consistent with that of AN's].
-c       Choosing it .ne. value for some known isotope if that species
+c       Choosing it .ne. value for some known isotope of that species
 c       causes the average atomic mass to be used.
 c=======================================================================
           READ(5,*) MN(1,ISOT), MN(2,ISOT)
@@ -228,15 +230,16 @@ c=======================================================================
           CALL MASSES(AN(2),MN(2,ISOT),CATOM,GELGS(2,ISOT),
      1                    GNS(2,ISOT),ZMASS(2,ISOT),ABUND)
           IF(ISOT.EQ.1) NAME(2)= CATOM
-          IF((AN(1).EQ.1).AND.(MN(1,ISOT).GT.3)) MN(1,ISOT)=MN(1,ISOT)-3
-          IF((AN(2).EQ.1).AND.(MN(2,ISOT).GT.3)) MN(2,ISOT)=MN(2,ISOT)-3
-          IF(IABS(CHARGE3).LE.0) THEN
+          IF(CHARGE3.EQ.0) THEN     !! Watson charge modified mass
               ZMASS(3,ISOT)= (ZMASS(1,ISOT)*ZMASS(2,ISOT))/
      1                    (ZMASS(1,ISOT)+ZMASS(2,ISOT)-CHARGE*ZMASE)
-            ELSE
-              ZMASS(3,ISOT)= (ZMASS(1,ISOT) - CHARGE1*HZMASE)*
-     1                      (ZMASS(2,ISOT) - CHARGE2*HZMASE)/
-     2                    (ZMASS(1,ISOT)+ZMASS(2,ISOT)-CHARGE3*HZMASE)
+            ELSE                          !! standard 2-body mass
+              IF(CHARGE.NE.0) THEN             !! adjust masses for ion
+                  ZMASS(1,ISOT)= ZMASS(1,ISOT) - hCHARGE1*HZMASE
+                  ZMASS(2,ISOT)= ZMASS(2,ISOT) - hCHARGE2*HZMASE
+                  ENDIF
+              ZMASS(3,ISOT)= ZMASS(1,ISOT)*ZMASS(2,ISOT)/
+     2                                 (ZMASS(1,ISOT) + ZMASS(2,ISOT))
             ENDIF
           WRITE(6,602) NAME(1),MN(1,ISOT),NAME(2),MN(2,ISOT),
      1                                          (ZMASS(J,ISOT),J=1,3)
@@ -252,8 +255,8 @@ ccc   IF(CHARGE.NE.0) WRITE(6,597) CHARGE
      2  'SQRT{(u(i;exp)**2 + (',f5.2,'*width)**2}')
 cc597 FORMAT(1x,67('-')/' Since this is an ion with charge',SP,i3,
 cc   1  ", use Watson's charge-modified reduced mass.")
-  601 FORMAT(2X,'Input data for',I3,'  isotopomer(s)'/2X,16('**')/2X,
-     1  '    Isotopomer       Mass of atom-1   Mass of atom-2    Reduced
+  601 FORMAT(2X,'Input data for',I3,'  isotopologues(s)'/2X,16('**')/2X,
+     1  '    Isotopologues    Mass of atom-1   Mass of atom-2    Reduced
      2 mass'/ 2X,'----------------- ',3('   --------------'))
   602 FORMAT(2X,A2,'(',I3,') - ',A2,'(',I3,')',3(3X,F14.9))
   603 FORMAT('  Note that   (Mass Number) = 0   causes the average atomi
@@ -318,13 +321,6 @@ c=======================================================================
      1 relative uncertainty')
   687 FORMAT(4x,'uncertainty, proceeding sequentially from the LAST para
      1meter to the FIRST.')
-
-c!!!
-cc    IF(NOWIDTHS.LE.0) THEN
-cc        WRITE(FN32,'(2A)') WRITFILE(1:lnblnk(WRITFILE)),'.32'
-cc        OPEN(UNIT=32, FILE= FN32)
-cc        ENDIF
-c!!!  
 c
       DO  ISTATE= 1,NSTATES 
 c-----------------------------------------------------------------------
@@ -351,8 +347,8 @@ c======================================================================
           IF(NISTP.GT.1) THEN
               DO  ISOT= 2, NISTP
                   VMIN(ISTATE,ISOT)= VMIN(ISTATE,1)
-                  VMAX(ISTATE,ISOT)= INT((VMAX(ISTATE,1)+1.0d0)/
-     1                                              RSQMU(ISOT)-0.5d0)
+                  VMAX(ISTATE,ISOT)= INT((VMAX(ISTATE,1)+0.5d0)/
+     1                                         RSQMU(ISOT) - 0.5d0)
                   ENDDO
               VMAXIN(ISTATE)= 1
               IF(VMAX(ISTATE,1).LT.0) THEN 
@@ -368,30 +364,37 @@ c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** These statements construct and define the names of output files
 c   associated with WRITE's to channels 10-16 used by the program.
-          IF(OSEL(ISTATE).GT.0) THEN
+          IF(OSEL(ISTATE).NE.0) THEN
               WRITE(FN10,'(2A)') WRITFILE(1:lnblnk(WRITFILE)),'.10'
-              WRITE(FN11,'(2A)') WRITFILE(1:lnblnk(WRITFILE)),'.11'
               OPEN(UNIT=10,FILE=FN10)
+              WRITE(FN11,'(2A)') WRITFILE(1:lnblnk(WRITFILE)),'.11'
               OPEN(UNIT=11,FILE=FN11)
-              IF(NUA(ISTATE).GE.0) THEN
-                  WRITE(FN12,'(2A)') WRITFILE(1:lnblnk(WRITFILE)),'.12'
-                  OPEN(UNIT=12, FILE=FN12)
-                  ENDIF
-              IF(NUB(ISTATE).GE.0) THEN
-                  WRITE(FN13,'(2A)') WRITFILE(1:lnblnk(WRITFILE)),'.13'
-                  OPEN(UNIT=13,FILE=FN13)
-                  ENDIF
-              IF(NTA(ISTATE).GE.0) THEN
-                  WRITE(FN14,'(2A)') WRITFILE(1:lnblnk(WRITFILE)),'.14'
-                  OPEN(UNIT=14,FILE=FN14)
-                  ENDIF
-              IF(NTB(ISTATE).GE.0) THEN
-                  WRITE(FN15,'(2A)') WRITFILE(1:lnblnk(WRITFILE)),'.15'
-                  OPEN(UNIT=15,FILE=FN15)
-                  ENDIF
-              IF(NwCFT(ISTATE).GE.0) THEN
-                  WRITE(FN16,'(2A)') WRITFILE(1:lnblnk(WRITFILE)),'.16'
-                  OPEN(UNIT=16,FILE=FN16)
+              IF(OSEL(ISTATE).LT.0) THEN
+                  IF(NUA(ISTATE).GE.0) THEN
+                      WRITE(FN12,'(2A)') WRITFILE(1:lnblnk(WRITFILE)),
+     1                                                           '.12'
+                      OPEN(UNIT=12, FILE=FN12)
+                      ENDIF
+                  IF(NUB(ISTATE).GE.0) THEN
+                      WRITE(FN13,'(2A)') WRITFILE(1:lnblnk(WRITFILE)),
+     1                                                           '.13'
+                      OPEN(UNIT=13,FILE=FN13)
+                      ENDIF
+                  IF(NTA(ISTATE).GE.0) THEN
+                      WRITE(FN14,'(2A)') WRITFILE(1:lnblnk(WRITFILE)),
+     1                                                           '.14'
+                      OPEN(UNIT=14,FILE=FN14)
+                      ENDIF
+                  IF(NTB(ISTATE).GE.0) THEN
+                      WRITE(FN15,'(2A)') WRITFILE(1:lnblnk(WRITFILE)),
+     1                                                           '.15'
+                      OPEN(UNIT=15,FILE=FN15)
+                      ENDIF
+                  IF(NwCFT(ISTATE).GE.0) THEN
+                      WRITE(FN16,'(2A)') WRITFILE(1:lnblnk(WRITFILE)),
+     1                                                           '.16'
+                      OPEN(UNIT=16,FILE=FN16)
+                      ENDIF
                   ENDIF
               ENDIF
           PASok(ISTATE)= 1
@@ -399,7 +402,7 @@ c   associated with WRITE's to channels 10-16 used by the program.
 c** Call VGEN to generate  betaINF  value for output in WRITEPOT
           IF(PSEL(ISTATE).EQ.2) THEN
               POTPARI(ISTATE)= 1
-              CALL VGEN(ISTATE,1.0d0,VDIST,BETADIST,0)
+              CALL VGEN(ISTATE,RE(ISTATE),VDIST,BETADIST,0)
               ENDIF
           ENDDO
       IF(uBv.GT.0) THEN
@@ -408,7 +411,7 @@ c** If uBv > 0,  define the name of the output file for Bv & Gv uncert
           OPEN(UNIT=17,FILE=FN17)
           ENDIF
 c** Now write summary of the initial potential parameters for each state
-      CALL WRITEPOT(1,SLABL,NAME,DECM,PV,PU,PS,CM,VMAXIN,BANDNAME)
+      CALL WRITEPOT(1,SLABL,NAME,DECM,PV,PU,PS,CM,VMAXIN)
 c
 c** Now ... count potential parameters of various types for each state
 c=======================================================================
@@ -418,13 +421,13 @@ c     COMMON /BLKCOUNT/TOTPOTPAR,POTPARI,POTPARF,UAPARI,UAPARF,
 c    1  UBPARI,UBPARF,TAPARI,TAPARF,TBPARI,TBPARF,LDPARI,LDPARF
 c=======================================================================
       TOTPOTPAR= 0
+      NBCTOT= 0
       IPV= 0
       DO 90 ISTATE= 1,NSTATES
           IF((PSEL(ISTATE).EQ.0).OR.(PSEL(ISTATE).EQ.-2)) GOTO 90
           IF(PSEL(ISTATE).EQ.-1) THEN
 c... When using band constants for this state ... count them and label 
 c    first and last for each level of each isotopologue ...
-              TOTPOTPAR= IPV
               DO  ISOT= 1, NISTP
                   DO  I= VMIN(ISTATE,ISOT),VMAX(ISTATE,ISOT)
                       IF(NBC(I,ISOT,ISTATE).GT.0) THEN
@@ -435,6 +438,7 @@ c    first and last for each level of each isotopologue ...
                               PV(IPV)= 0.d0
                               PU(IPV)= 0.d0
                               ENDDO
+                          NBCTOT= NBCTOT + NBC(I,ISOT,ISTATE)
                           BCPARF(I,ISOT,ISTATE)= IPV
                           ENDIF
                       IF(NQC(I,ISOT,ISTATE).GT.0) THEN
@@ -446,16 +450,14 @@ c    first and last for each level of each isotopologue ...
                               PU(IPV)= 0.d0
                               ENDDO
                           QCPARF(I,ISOT,ISTATE)= IPV
+                          NBCTOT= NBCTOT + NQC(I,ISOT,ISTATE)
                           ENDIF
                       ENDDO
                   ENDDO
+cc            TOTPOTPAR= IPV                  !! ?? save BC for GPROUND
               GOTO 90
               ENDIF
-c... For all types of fitted potential, count  Re (param #2)
-          IPV= IPV+ 1
-          POTPARI(ISTATE)= IPV
-          POTPARF(ISTATE)= IPV
-          IFXPV(IPV)= IFXRe(ISTATE)
+          POTPARI(ISTATE)= IPV+1
           UAPARI(ISTATE)= 0
           UAPARF(ISTATE)= 0
           UBPARI(ISTATE)= 0
@@ -467,21 +469,28 @@ c... For all types of fitted potential, count  Re (param #2)
           LDPARI(ISTATE)= 0
           LDPARF(ISTATE)= 0
           HPARF(ISTATE)= 0
-c... For all cases, except HPP and GPEF (where it doesn't appear), count De
-          IF((PSEL(ISTATE).LE.6).and.(PSEL(ISTATE).NE.4)) THEN
-              IFXPV(IPV)= IFXDe(ISTATE)         !! if De is param #1
+c... For all fitted potentials except  GPEF count De
+          IF((PSEL(ISTATE).LE.3)) THEN
               IPV= IPV+ 1          
-              POTPARF(ISTATE)= IPV
-              IFXPV(IPV)= IFXRe(ISTATE)   !! rejig for De being param #1
-              IPV= IPV+ 1
-              POTPARF(ISTATE)= IPV
-              IFXPV(IPV)= IFXRRefP(ISTATE) !! RrefP
-              IPV= IPV+ 1
-              POTPARF(ISTATE)= IPV
-              IFXPV(IPV)= IFXRRefQ(ISTATE) !! RrefQ
+              IFXPV(IPV)= IFXDe(ISTATE)
               ENDIF
-          IF((PSEL(ISTATE).GE.2).and.(PSEL(ISTATE).LE.6)) THEN
-c... For MLR, DELR, HPP, TT & HFD forms, count long-range parameters: count Cm's
+c... For all fitted potentials count Re
+          IF((PSEL(ISTATE).LE.4)) THEN 
+              IPV= IPV+1
+              IF(PSEL(ISTATE).EQ.4) POTPARI(ISTATE)= IPV
+              IFXPV(IPV)= IFXRe(ISTATE)
+c... For all fitted potentials ... also count RREFq
+              IPV= IPV+1
+              IFXPV(IPV)= IFXrefq(ISTATE)
+              ENDIF
+c... For MLR potentials count RREFp
+          IF((PSEL(ISTATE).EQ.2)) THEN
+             IPV= IPV+1
+             IFXPV(IPV)= IFXrefp(ISTATE)
+             ENDIF
+c... For EMO, MLR, DELR
+          IF((PSEL(ISTATE).EQ.2).OR.(PSEL(ISTATE).EQ.3)) THEN
+c... For MLR and  DELR, forms, count long-range parameters: count Cm's
               DO  J= 1,NCMM(ISTATE)
 c... additional Aubert-Frecon{3,6,6,8,8} parameters included in this count
                   IPV= IPV+ 1
@@ -497,8 +506,8 @@ c  an earlier (smaller ISTATE) state ....
               ENDIF
 c... Now count [exponent] \beta_i expansion coefficients
           J=0
-c** For Pashov-exponent MLR count starts with 1 for y_p = 1.0
-          IF(NSR(ISTATE).LT.0) J=1
+c** For Pashov-exponent SE-MLR, or TT or HDF parameter count starts with 1
+          IF((APSE(ISTATE).GT.0).OR.(PSEL(ISTATE).GE.6)) J=1
           DO I= J,Nbeta(ISTATE)
               IPV= IPV+ 1 
               POTPARF(ISTATE)= IPV
@@ -550,20 +559,20 @@ c... Count Lambda/doublet-sigma doubling parameters (if appropriate)
                   ENDDO
               ENDIF
           HPARF(ISTATE)= IPV
+          TOTPOTPAR= IPV
 c..... end of parameter count/label loop!
    90     CONTINUE
-      IF(TOTPOTPAR.EQ.0) TOTPOTPAR= IPV
+cc    IF(TOTPOTPAR.EQ.0) TOTPOTPAR= IPV     !! ?? spurious - unneeded ?
       IF(TOTPOTPAR.GT.HPARMX) THEN
           WRITE(6,626) TOTPOTPAR,HPARMX
           STOP
           ENDIF
-cc    NPTOT= TOTPOTPAR
       NPTOT= IPV
       NFPAR= 0
 c** Count total free Hamiltonian fitting parameters
       DO  IPV= 1, TOTPOTPAR
           IF(IFXPV(IPV).LE.0) NFPAR= NFPAR+ 1
-          ENDDO
+          ENDDO        !! NFRPAR, here, is total # free Hamilt  parmeters
 c------------ Finished counting Hamiltonian Parameters------------------
   626 FORMAT(/' *** Dimension Error *** [(total No. Hamiltonian parmaete
      1rs)=',i4,'] >  HPARMX=',i4)
@@ -608,21 +617,19 @@ c   and set initial values of any fluorescence series origins to zero.
 c** Set the energy convergence criterion to be 1/100th of the smallest
 c   experimental uncertainty. [UCUTOFF reset by READATA to that min. unc.]
       DO  ISTATE=1,NSTATES
-cc        EPS(ISTATE)= DMIN1(UCUTOFF/100.0d0,1.d-06)
-          EPS(ISTATE)= MIN(UCUTOFF/10.0d0,1.d-06)
+          EPS(ISTATE)= DMIN1(UCUTOFF/100.0d0,1.D-06)
+cc        EPS(ISTATE)= MIN(UCUTOFF/10.0d0,1.d-06)
           WRITE(6,638) SLABL(ISTATE), EPS(ISTATE)
 c** Initialize the dissociation energy ????
           DECM(ISTATE)= 0.0d0
           ENDDO
-
       flush(6)
-
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** Now Generate internal NLLSSRR variables {PV} from the external ones 
       CALL MAPPAR(NISTP,PV,0)
       SIROUND= IROUND
       IROUND= 0
-      IF((NFSTOT.GT.0).OR.(NTVALL(0).GT.0)) THEN
+      IF((NFSTOT.GT.0).OR.(NTVALL(0).GT.0).OR.(NBCTOT.GT.0)) THEN
 c** If HAVE fluorescence series and/or fitted term values and/or band 
 c  constants ... first fix ALL potential parameters and fit to determine
 c  estimates of the series origins and/or term values, and only THEN
@@ -635,12 +642,13 @@ c** Start by saving read-in values of  'IF(fix)' parameters
           DO  I= TOTPOTPAR+1,NPTOT
               IFXPV(I)= 0
               PV(I)= 0.d0
-              IF(IFXFS(I-TOTPOTPAR).GT.0) IFXPV(I)= 1
+cc            IF(IFXFS(I-TOTPOTPAR).GT.0) IFXPV(I)= 1  !!?????
+cc            IF(IFXFS(I-TOTPOTPAR+NBCTOT).GT.0) IFXPV(I)= 1
               ENDDO
-c** First, fit to Fluorescence series origins and/or free Term Values
-c           and/or band constants
+c** First, fit ONLY to Fluorescence series origins and/or free Term
+c            Value and/or band constants
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-          CALL NLLSSRR(COUNTOT,NPTOT,NPARMX,CYCMAX,IROUND,ROBUST,LPRINT,
+          CALL NLLSSRR(COUNTOT,NPTOT,NPARMX,CYCMX1,IROUND,ROBUST,LPRINT,
      1             IFXPV,FREQ,UFREQ,DFREQ,PV,PU,PS,CM,TSTPS,TSTPU,DSE)
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c...  Now reset "IFX(fix)" parameters to read-in values ... & proceed ..
@@ -652,21 +660,19 @@ c** Now, set TVALUE values & reset parameter array for global fit
               TVALUE(I-TOTPOTPAR)= PV(I)
               IFXPV(I)= 0
               IF(IFXFS(I-TOTPOTPAR).GT.0) THEN
-
-              write(6,888) I-TOTPOTPAR,TVALUE(I-TOTPOTPAR),
+                  write(6,888) I-TOTPOTPAR,TVALUE(I-TOTPOTPAR),
      1                 IFXFS(I-TOTPOTPAR),TVALUE(IFXFS(I-TOTPOTPAR))
-  888 format(/' Following FS fit reset  T(',i3,')=',f12.4,
+  888 format(/' Following FS fit, reset  T(',i3,')=',f12.4,
      1  '  equal   T(',I3,')=', F12.4)
-
-                    TVALUE(I-TOTPOTPAR)= TVALUE(IFXFS(I-TOTPOTPAR))
-                    IFXPV(I)= 1
-                    ENDIF
+                  TVALUE(I-TOTPOTPAR)= TVALUE(IFXFS(I-TOTPOTPAR))
+                  IFXPV(I)= 1
+                  ENDIF
               ENDDO
-          NFPAR= NFPAR+ NFSTOT+ NTVALL(0)
+          NFPAR= NFPAR+ NFSTOT+ NTVALL(0)+ NBCTOT
           CALL MAPPAR(NISTP,PV,0)
           ENDIF
 c--- End of section to determine preliminary values of any fluorescence 
-c    series origins
+c    series origins, term Values or Band Constants
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** Call subroutine NLLSSRR to calculate converged parameters from trial
 c   values and spectroscopic data.
@@ -680,9 +686,9 @@ c** If SRR rounding is to be performed, first save global uncertainties
               PUSAV(I)= PU(I)
               PSSAV(I)= PS(I)
               ENDDO
-c** Perform group rounding of all term values and/or fluorescence series
-c   origins in single step
-          IF((NFSTOT.GT.0).OR.(NTVALL(0).GT.0)) THEN
+c** Perform group rounding of all band constants and/or term values, 
+c   and/or fluorescence series origins in a single step
+          IF((NFSTOT.GT.0).OR.(NTVALL(0).GT.0).OR.(NBCTOT.GT.0)) THEN
               IROUND= IABS(SIROUND) + 2
               CALL GPROUND(IROUND,NPTOT,NPARMX,TOTPOTPAR+1,NPTOT,
      1                                             LPRINT,IFXPV,PV,PU)
@@ -696,10 +702,7 @@ c ... finally, reset all parameter uncertainties at pre-rounding values
               PU(I)= PUSAV(I)
               PS(I)= PSSAV(I)
               ENDDO
-c ... renormalize DSE relative value for to ALL fitting parameters free
-          DSE= DSE*DSQRT(DFLOAT(COUNTOT- (NFPAR- NFSTOT- NTVALL(0)))/
-     1                                         DFLOAT(COUNTOT- NFPAR))
-          ENDIF
+           ENDIF
 c** Writing out the general information of the fit.
 c-----------------------------------------------------------------------
       WRITE(6,691) NFPAR,COUNTOT,DSE
@@ -772,8 +775,9 @@ c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                   ENDIF
               CALL VGEN(ISTATE,-1.0d0,VDIST,BETADIST,1)
               IB(NDATAMX)= NPARMX    ! omits centrifugal bits from  VGEN
-              IF(OSEL(ISTATE).NE.0) THEN
-                  DO  I= 1,nPointSR(ISTATE),MAX(1,OSEL(ISTATE)/10)
+              IF(OSEL(ISTATE).GT.0) THEN
+                  J= MAX1(1.,OSEL(ISTATE)/10.)
+                  DO  I= 1,nPointSR(ISTATE), J 
 c ... generate potential & exponent values in inner extrapolation region
                       RDIST= RHT*DBLE(I) 
                       Rsr(I,ISTATE)= RDIST
@@ -796,13 +800,13 @@ c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** Call subroutine to print out a summary of the converged and fixed
 c   values to standard output (channel-6).
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-      CALL WRITEPOT(2,SLABL,NAME,DECM,PV,PU,PS,CM,VMAXIN,BANDNAME)
+      CALL WRITEPOT(2,SLABL,NAME,DECM,PV,PU,PS,CM,VMAXIN)
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** If chosen, output file(s) will be created for the export of the
 c   generated functions: V, BETAFX, UAR/UBR, or TAR/TBR and their
 c   respective uncertainties.
       DO  ISTATE= 1, NSTATES
-          IF(OSEL(ISTATE).GT.0) THEN
+          IF(OSEL(ISTATE).NE.0) THEN
               IF(PSEL(ISTATE).GT.0) THEN
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** Call subroutine to print out the generated functions and their
@@ -811,7 +815,7 @@ c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                   CALL FUNUNC(ISTATE,WRITFILE,PU,CM)
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                 ELSE 
-                  DO  I= 1,NDATPT(NSTATES),OSEL(ISTATE)
+                  DO  I= 1,NDATPT(NSTATES),IABS(OSEL(ISTATE))
                       WRITE(18,900) RD(I,ISTATE),VPOT(I,NSTATES)
                       ENDDO
                 ENDIF
@@ -832,3 +836,4 @@ c** If desired, calculate Bv uncertainties
   900 FORMAT(5X,G18.8,5X,G18.8)
       END
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
+

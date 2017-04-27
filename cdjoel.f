@@ -1,5 +1,5 @@
 c***********************************************************************
-      SUBROUTINE CDJOEL(EO,NBEG,NEND,NDIMR,BvWN,RH,WARN,V,WF0,RM2,RCNST)
+      SUBROUTINE CDJOEL(EO,NBEG,NEND,BvWN,RH,WARN,V,WF0,RM2,RCNST)
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c  Subroutine solving the linear inhomogeneous differential equations
 c  formulated by J.M. Hutson [J.Phys.B14, 851 (1982)] for treating 
@@ -22,26 +22,27 @@ c               RM2(i) is the array  1/(distance**2) in units [1/Ang**2]
 c** On exit:    RCNST(i)  is the set of 7 rotational constants: Bv, -Dv,
 c                       Hv, Lv, Mv, Nv & Ov
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-c               COPYRIGHT 1994-2011  by  Robert J. Le Roy              +
+c               COPYRIGHT 1994-2016  by  Robert J. Le Roy              +
 c   Dept. of Chemistry, Univ. of Waterloo, Waterloo, Ontario, Canada   +
 c    This software may not be sold or any other commercial use made    +
 c      of it without the express written permission of the author.     +
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-c  Authors: R.J. Le Roy & J. Tellinghuisen         Version of 05/02/2011
+c  Authors: R.J. Le Roy & J. Tellinghuisen         Version of 23/05/2016
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      INCLUDE 'arrsizes.h'             !! bring in array size parameters
 c** Dimension:  potential arrays  and  vib. level arrays.
-      INTEGER NDMINT
-      INTEGER I,M,IPASS,M1,M2,NBEG,NEND,NDIMR,WARN
-      REAL*8 V(NEND),WF0(NEND),RM2(NEND),P(NDIMR),WF1(NDIMR),
-     1                                             WF2(NDIMR),RCNST(7)
+c===============================================================      
+      INTEGER I,M,IPASS,M1,M2,NBEG,NEND,WARN
+      REAL*8 V(NPNTMX),WF0(NPNTMX),RM2(NPNTMX),P(NPNTMX),WF1(NPNTMX),
+     1                                       WF2(NPNTMX),RCNST(NROTMX)
       REAL*8 BvWN,DV,DVV,HVV,HV2,LVV,LV2,MVV,MV2,NVV,OVV,EO,E,RH,RHSQ,
      1  ZTW,AR,R2IN,G2,G3,P0,P1,P2,P3,PI,PIF,PRS,PRT,V1,V2,V3,Y1,Y2,Y3,
      2  TSTHv,TSTLv,TSTMv,AMB,AMB1,AMB2,
      3  OV,OV01,OV02,OV03,OV11,OV12,OV13,OV22,OV23,OV33,
      4  PER01,PER02,PER03,PER11,PER12,PER13,PER22,PER23,PER33
 c
-      IF(NEND.GT.NDIMR) THEN
-          WRITE(6,602) NEND,NDIMR
+      IF(NEND.GT.NPNTMX) THEN
+          WRITE(6,602) NEND,NPNTMX
           RETURN
           ENDIF
       ZTW= 1.D0/12.d0
@@ -267,7 +268,7 @@ c** Kill nonsensical high-order CDCs (which can occur in double-well cases)
   601 FORMAT(' *** ERROR in CDJOEL *** for input energy  E =',f12.4,
      1   '  never reach outer turning point')
   602 FORMAT(/' *** Dimensioning PROBLEM in CDJOEL ***   NEND=',i6,
-     1  ' > NDIMR=',i6)
+     1  ' > NPNTMX=',i6)
   603 FORMAT(' ** CAUTION ** Comparison tests for Hv, Lv & Mv give:',
      1 3(1Pd9.1))
   604 FORMAT(' ** CAUTION ** CDJOEL orthogonality tests OV01,OV02 & OV03

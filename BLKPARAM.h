@@ -1,7 +1,6 @@
 c=======================================================================
 c** Parameters and count-labels for band constant (PSEL=-1) or term
 c   value (PSEL=-2) fits
-c
       REAL*8 TVALUE(NPARMX),ZBC(0:NVIBMX,0:NROTMX,NISTPMX,NSTATEMX),
      1 ZQC(0:NVIBMX,0:NROTMX,NISTPMX,NSTATEMX)
 c

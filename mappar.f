@@ -4,7 +4,7 @@ c***********************************************************************
 c** This subroutine will convert external logical physical parameters 
 c  into the generic NLLSSRR parameter array PV or the reverse.
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-c++ COPYRIGHT 1997-2011  by  J.Y. Seto & R.J. Le Roy  (ver. 14/07/2011)+
+c++ COPYRIGHT 1997-2016  by  J.Y. Seto & R.J. Le Roy  (ver. 27/03/2016)+
 c   Dept. of Chemistry, Univ. of Waterloo, Waterloo, Ontario, Canada   +
 c    This software may not be sold or any other commercial use made    +
 c      of it without the express written permission of the authors.    +
@@ -52,26 +52,30 @@ c*** Manage parameters for term value mappings ...
                   ENDIF
               IF(PSEL(ISTATE).GT.0) THEN
 c*** Manage parameters for potential function mapping ...
-                  IF((PSEL(ISTATE).LE.6).and.(PSEL(ISTATE).NE.4)) THEN
+                  IF(PSEL(ISTATE).LT.4) THEN
                       IPV= IPV+ 1
                       PV(IPV)= DE(ISTATE)
                       ENDIF
-                  IPV= IPV+ 1
-                  PV(IPV)= RE(ISTATE)
-                  IPV= IPV+ 1
-                  PV(IPV)= RREFP(ISTATE)
-                  IPV= IPV+ 1
-                  PV(IPV)= RREFQ(ISTATE)
-                  IF((PSEL(ISTATE).GE.2).AND.(PSEL(ISTATE).LE.6)) THEN
+                  IF(PSEL(ISTATE).LE.4) THEN
+                      IPV= IPV+ 1
+                      PV(IPV)= RE(ISTATE)
+                      IPV= IPV+ 1                       !! count RREFq
+                      PV(IPV)= RREFq(ISTATE)
+                      ENDIF
+                  IF(PSEL(ISTATE).EQ.2) THEN
+                      IPV= IPV+ 1                       !! count RREFp
+                      PV(IPV)= RREFp(ISTATE)
+                      ENDIF
+                  IF((PSEL(ISTATE).EQ.2).OR.(PSEL(ISTATE).EQ.3)) THEN
                       DO  m= 1,NCMM(ISTATE)
-                          IPV= IPV+ 1
+                          IPV= IPV+ 1                   !! count Cm's
                           PV(IPV)= CmVAL(m,ISTATE)
                           ENDDO
                       ENDIF
-                  J= 0
-                  IF(NSR(ISTATE).LT.0) J=1   !! for Pashov spline exponent
+                  J= 0         !! for all PECs except SE-MLR, TT or HDF 
+                  IF((APSE(ISTATE).GT.0).OR.(PSEL(ISTATE).GE.6)) J=1
                   DO  I= J,Nbeta(ISTATE)
-                      IPV= IPV+ 1
+                      IPV= IPV+ 1                    !! count \beta_i's
                       PV(IPV)= BETA(I,ISTATE)
                       ENDDO
                   IF(NUA(ISTATE).GE.0) THEN
@@ -134,24 +138,28 @@ c*** Manage parameters for term value mappings ...
                   ENDIF
               IF(PSEL(ISTATE).GT.0) THEN
 c*** Manage parameters for potential function mappings ...
-                  IF((PSEL(ISTATE).LE.6).and.(PSEL(ISTATE).NE.4)) THEN
-                      IPV= IPV + 1
+                  IF(PSEL(ISTATE).LT.4) THEN
+                      IPV= IPV + 1                      !! count D_e
                       DE(ISTATE)= PV(IPV)
                       ENDIF
-                  IPV= IPV + 1
-                  RE(ISTATE) = PV(IPV)
-                  IPV= IPV + 1
-                  RREFP(ISTATE) = PV(IPV)
-                  IPV= IPV + 1
-                  RREFQ(ISTATE) = PV(IPV)
-                  IF((PSEL(ISTATE).GE.2).AND.(PSEL(ISTATE).LE.6)) THEN
+                  IF(PSEL(ISTATE).LE.4) THEN
+                      IPV= IPV + 1                      !! count r_e
+                      RE(ISTATE) = PV(IPV)
+                      IPV= IPV+ 1                       !! count RREFq
+                      RREFq(ISTATE)= PV(IPV)
+                      ENDIF
+                  IF(PSEL(ISTATE).EQ.2) THEN
+                      IPV= IPV+ 1                        !! count RREFp
+                      RREFp(ISTATE)= PV(IPV)
+                      ENDIF
+                  IF((PSEL(ISTATE).EQ.2).OR.(PSEL(ISTATE).EQ.3)) THEN
                       DO  m= 1,NCMM(ISTATE)
                           IPV= IPV+ 1
                           CmVAL(m,ISTATE)= PV(IPV) 
                           ENDDO
                       ENDIF
-                  J=0
-                  IF(NSR(ISTATE).LT.0) J=1   !! for Pashov spline exponent
+                  J=0     !! count for all PECs except SE-MLR, TT or HDF
+                  IF((APSE(ISTATE).GT.0).OR.(PSEL(ISTATE).GE.6)) J=1
                   DO I= J, Nbeta(ISTATE)
                       IPV = IPV + 1
                       BETA(I,ISTATE) = PV(IPV)
@@ -192,3 +200,4 @@ c*** Manage parameters for potential function mappings ...
       RETURN
       END
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
+

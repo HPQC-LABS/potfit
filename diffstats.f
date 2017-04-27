@@ -26,7 +26,7 @@ c========================================================================
           REWIND 4
           WRITE(4,601)
           ENDIF
-c** Summarize data discrepancies for one isotopomer at a time.
+c** Summarize data discrepancies for one isotopologue at a time.
    10 WRITE(6,602) NBANDS(ISOT),(NAME(I),MN(I,ISOT),I= 1,2)
 c
 c** Loop over bands for each (lower) electronic state, in turm
@@ -59,22 +59,20 @@ c** Book-keeping for Micowave data
               WRITE(8,605)
               IF(MKPRED.LE.0) THEN
                   IF((PRINP.EQ.2).OR.(PRINP.EQ.-2)) THEN    
-                        WRITE(8,606) VP(IBN),VPP(IBN),
-     1                  NTRANS(IBN),JMIN(IBN),JMAX(IBN),
-     2                  AVEUFREQ(IBN),MAXUFREQ(IBN),AVE,RMSR,
-     3                  BANDNAME(IBN)
-                   ELSE
-                           WRITE(8,606) VP(IBN),VPP(IBN),
-     1                         NTRANS(IBN),JMIN(IBN),JMAX(IBN),
-     2                         AVEUFREQ(IBN),MAXUFREQ(IBN),AVE,RMSR
-                   ENDIF
+                      WRITE(8,606) VP(IBN),VPP(IBN),NTRANS(IBN),
+     1                  JMIN(IBN),JMAX(IBN),AVEUFREQ(IBN),MAXUFREQ(IBN),
+     2                  AVE,RMSR,BANDNAME(IBN)
+                     ELSE
+                      WRITE(8,606) VP(IBN),VPP(IBN),NTRANS(IBN),
+     1                  JMIN(IBN),JMAX(IBN),AVEUFREQ(IBN),MAXUFREQ(IBN),
+     2                   AVE,RMSR
+                     ENDIF
               ENDIF
               IF(MKPRED.GT.0) THEN
-                  WRITE(8,606) VP(IBN),VPP(IBN),
-     1                  NTRANS(IBN),JMIN(IBN),JMAX(IBN) 
-                  WRITE(4,640) VP(IBN),VPP(IBN),
-     1             SLABL(ISTATE),SLABL(ISTATE),
-     2                                              (MN(K,ISOT),K=1,2)
+                  WRITE(8,606) VP(IBN),VPP(IBN),NTRANS(IBN),JMIN(IBN),
+     1                                                        JMAX(IBN) 
+                  WRITE(4,640) VP(IBN),VPP(IBN),SLABL(ISTATE),
+     1                                SLABL(ISTATE),(MN(K,ISOT),K=1,2)
                   ENDIF
   640 FORMAT(/2I4,2(2x,"'",A3,"'"),2x,2I4)
               CALL PBNDERR(IBN,MKPRED,NEF)
@@ -270,6 +268,36 @@ c** Book-keeping for  PAS  data
           WRITE(8,629)
           ENDIF
 c
+      IF(NVVPP(ISOT,ISTATE).GT.0) THEN
+c** Book-keeping for potential function values as data .....
+          IBN= IBB(ISOT,ISTATE,5,1)
+          CALL BNDERR(IFIRST(IBN),ILAST(IBN),ROBUST,AVE,RMSR,SSQTOT,
+     1                                                    DFREQ,UFREQ)
+          IF((PRINP.EQ.2).OR.(PRINP.EQ.-2)) THEN
+              WRITE(6,638) NVVPP(ISOT,ISTATE),SLABL(ISTATE),
+     1              (NAME(I),MN(I,ISOT),I=1,2),NTRANS(IBN),
+     2              AVEUFREQ(IBN),MAXUFREQ(IBN),AVE,RMSR,
+     3              BANDNAME(IBN)
+              WRITE(8,638) NVVPP(ISOT,ISTATE),SLABL(ISTATE),
+     1              (NAME(I),MN(I,ISOT),I=1,2),NTRANS(IBN),
+     2              AVEUFREQ(IBN),MAXUFREQ(IBN),AVE,RMSR,
+     3              BANDNAME(IBN)
+            ELSE
+              WRITE(6,639) NVVPP(ISOT,ISTATE),SLABL(ISTATE),
+     1              (NAME(I),MN(I,ISOT),I=1,2),NTRANS(IBN),
+     2              AVEUFREQ(IBN),MAXUFREQ(IBN),AVE,RMSR
+              WRITE(8,639) NVVPP(ISOT,ISTATE),SLABL(ISTATE),
+     1              (NAME(I),MN(I,ISOT),I=1,2),NTRANS(IBN),
+     2              AVEUFREQ(IBN),MAXUFREQ(IBN),AVE,RMSR
+            ENDIF
+          DO  J= IFIRST(IBN),ILAST(IBN)
+              WRITE(6,637) TEMP(J),FREQ(J),UFREQ(J),DFREQ(J),
+     1                                               DFREQ(J)/UFREQ(J)
+              WRITE(8,637) TEMP(J),FREQ(J),UFREQ(J),DFREQ(J),
+     1                                               DFREQ(J)/UFREQ(J)
+              ENDDO
+          ENDIF
+c
       IF(NWIDTH(ISOT,ISTATE).GT.0) THEN
 c** Book-keeping for  Tunneling Width  data
           IBN= IBB(ISOT,ISTATE,6,1)    
@@ -300,36 +328,6 @@ c** Book-keeping for  Tunneling Width  data
               ENDDO
           ENDIF
 c
-      IF(NVVPP(ISOT,ISTATE).GT.0) THEN
-c** Book-keeping for potential function values as data .....
-          IBN= IBB(ISOT,ISTATE,5,1)
-          CALL BNDERR(IFIRST(IBN),ILAST(IBN),ROBUST,AVE,RMSR,SSQTOT,
-     1                                                    DFREQ,UFREQ)
-          IF((PRINP.EQ.2).OR.(PRINP.EQ.-2)) THEN
-          WRITE(6,638) NVVPP(ISOT,ISTATE),SLABL(ISTATE),
-     1              (NAME(I),MN(I,ISOT),I=1,2),NTRANS(IBN),
-     2              AVEUFREQ(IBN),MAXUFREQ(IBN),AVE,RMSR,
-     3              BANDNAME(IBN)
-          WRITE(8,638) NVVPP(ISOT,ISTATE),SLABL(ISTATE),
-     1              (NAME(I),MN(I,ISOT),I=1,2),NTRANS(IBN),
-     2              AVEUFREQ(IBN),MAXUFREQ(IBN),AVE,RMSR,
-     3              BANDNAME(IBN)
-          ELSE
-          WRITE(6,639) NVVPP(ISOT,ISTATE),SLABL(ISTATE),
-     1              (NAME(I),MN(I,ISOT),I=1,2),NTRANS(IBN),
-     2              AVEUFREQ(IBN),MAXUFREQ(IBN),AVE,RMSR
-          WRITE(8,639) NVVPP(ISOT,ISTATE),SLABL(ISTATE),
-     1              (NAME(I),MN(I,ISOT),I=1,2),NTRANS(IBN),
-     2              AVEUFREQ(IBN),MAXUFREQ(IBN),AVE,RMSR
-          ENDIF
-          DO  J= IFIRST(IBN),ILAST(IBN)
-              WRITE(6,637) TEMP(J),FREQ(J),UFREQ(J),DFREQ(J),
-     1                                               DFREQ(J)/UFREQ(J)
-              WRITE(8,637) TEMP(J),FREQ(J),UFREQ(J),DFREQ(J),
-     1                                               DFREQ(J)/UFREQ(J)
-              ENDDO
-          ENDIF
-c
       IF(NVIRIAL(ISOT,ISTATE).GT.0) THEN
 c** Book-keeping for  Virial Coefficient  data
           IBN= IBB(ISOT,ISTATE,8,1)
@@ -337,28 +335,26 @@ c** Book-keeping for  Virial Coefficient  data
      1                                                    DFREQ,UFREQ)
           IF((PRINP.EQ.2).OR.(PRINP.EQ.-2)) THEN
               WRITE(6,634) NVIRIAL(ISOT,ISTATE),SLABL(ISTATE),
-     1              (NAME(I),MN(I,ISOT),I=1,2),NTRANS(IBN),
+     1              (NAME(I),MN(I,ISOT),I=1,2),' Pressure',NTRANS(IBN),
      2              AVEUFREQ(IBN),MAXUFREQ(IBN),AVE,RMSR,
      3              BANDNAME(IBN)
               WRITE(8,634) NVIRIAL(ISOT,ISTATE),SLABL(ISTATE),
-     1              (NAME(I),MN(I,ISOT),I=1,2),NTRANS(IBN),
+     1              (NAME(I),MN(I,ISOT),I=1,2),' Pressure', NTRANS(IBN),
      2              AVEUFREQ(IBN),MAXUFREQ(IBN),AVE,RMSR,
      3              BANDNAME(IBN)
             ELSE
               WRITE(6,635) NVIRIAL(ISOT,ISTATE),SLABL(ISTATE),
-     1              (NAME(I),MN(I,ISOT),I=1,2),NTRANS(IBN),
+     1              (NAME(I),MN(I,ISOT),I=1,2),' Pressure',NTRANS(IBN),
      2              AVEUFREQ(IBN),MAXUFREQ(IBN),AVE,RMSR
               WRITE(8,635) NVIRIAL(ISOT,ISTATE),SLABL(ISTATE),
-     1              (NAME(I),MN(I,ISOT),I=1,2),NTRANS(IBN),
+     1              (NAME(I),MN(I,ISOT),I=1,2),' Pressure',NTRANS(IBN),
      2              AVEUFREQ(IBN),MAXUFREQ(IBN),AVE,RMSR
             ENDIF
           DO  J= IFIRST(IBN),ILAST(IBN)
-ccc           WRITE(6,636) TEMP(J),FREQ(J),UFREQ(J),DFREQ(J),
-ccc  1                                               DFREQ(J)/UFREQ(J)
               WRITE(8,636) TEMP(J),FREQ(J),UFREQ(J),DFREQ(J),
      1                                               DFREQ(J)/UFREQ(J)
-c=======================================================
-c   7 State X0 Ar( 40)-Xe(132)  Virial Coefficients
+              ENDDO
+          ENDIF
 c======================================= Avge. =========
 c         #data    Av.Unc.   Max.Unc.   Err/Unc   DRMSD
 c-------------------------------------------------------
@@ -370,40 +366,38 @@ c   1234.00    -141.22       2.00      23.xxx     5.0000
 c   1234.00    -141.22       2.00      23.xxx     5.0000
 c   1234.00    -141.22       2.00      23.xxx     5.0000
 c--------------------------------------------------------
+      IF(NAcVIR(ISOT,ISTATE).GT.0) THEN
+c** Book-keeping for  Acoustic Virial Coefficient  data
+          IBN= IBB(ISOT,ISTATE,9,1)
+          CALL BNDERR(IFIRST(IBN),ILAST(IBN),ROBUST,AVE,RMSR,SSQTOT,
+     1                                                    DFREQ,UFREQ)
+          IF((PRINP.EQ.2).OR.(PRINP.EQ.-2)) THEN
+              WRITE(6,634) NAcVIR(ISOT,ISTATE),SLABL(ISTATE),
+     1              (NAME(I),MN(I,ISOT),I=1,2),'Acoustic',NTRANS(IBN),
+     2              AVEUFREQ(IBN),MAXUFREQ(IBN),AVE,RMSR,
+     3              BANDNAME(IBN)
+              WRITE(8,634) NAcVIR(ISOT,ISTATE),SLABL(ISTATE),
+     1              (NAME(I),MN(I,ISOT),I=1,2),'Acoustic', NTRANS(IBN),
+     2              AVEUFREQ(IBN),MAXUFREQ(IBN),AVE,RMSR,
+     3              BANDNAME(IBN)
+            ELSE
+              WRITE(6,635) NAcVIR(ISOT,ISTATE),SLABL(ISTATE),
+     1              (NAME(I),MN(I,ISOT),I=1,2),'Acoustic',NTRANS(IBN),
+     2              AVEUFREQ(IBN),MAXUFREQ(IBN),AVE,RMSR
+              WRITE(8,635) NAcVIR(ISOT,ISTATE),SLABL(ISTATE),
+     1              (NAME(I),MN(I,ISOT),I=1,2),'Acoustic',NTRANS(IBN),
+     2              AVEUFREQ(IBN),MAXUFREQ(IBN),AVE,RMSR
+            ENDIF
+          DO  J= IFIRST(IBN),ILAST(IBN)
+              WRITE(8,636) TEMP(J),FREQ(J),UFREQ(J),DFREQ(J),
+     1                                               DFREQ(J)/UFREQ(J)
               ENDDO
-  634 FORMAT(/1x,55('=')/I5,'  State ',A3,2x,A2,'(',I3,')-',A2,'(',
-     1 I3,')  Virial coefficients'/1x,10('===='),' Avge. ',('====')/5x,
-     2 '#data    Av.Unc.    Max.Unc.    Err/Unc   DRMSD'/1x,10('-----')
-     3 /I9,1PD12.2,D12.2,0PF11.5,F8.3,A32/1x,23('=='),' calc-obs'/
-     4  5x,'temp.',4x,'Bvir(obs)',4x,'u(Bvir)   calc-obs   /u(Bvir)'/
-     5  1x,53('-'))
-  635 FORMAT(/1x,55('=')/I5,'  State ',A3,2x,A2,'(',I3,')-',A2,'(',
-     1 I3,')  Virial coefficients'/1x,10('===='),' Avge. ',('====')/5x,
-     2 '#data    Av.Unc.    Max.Unc.    Err/Unc   DRMSD'/1x,10('-----')
-     3 /I9,1PD12.2,D12.2,0PF11.5,F8.3/1x,23('=='),' calc-obs'/
-     4  5x,'temp.',4x,'Bvir(obs)',4x,'u(Bvir)   calc-obs   /u(Bvir)'/
-     5  1x,53('-'))
-  636 FORMAT(F11.3,2F10.2,2F11.3)
-c 637 FORMAT(F11.6,1P,D14.6,d10.1,D13.5,0P,F8.2)
-  637 FORMAT(F11.6,F12.2,F10.2,2F11.3)
           ENDIF
-  638 FORMAT(/1x,55('=')/I5,'  State ',A3,2x,A2,'(',I3,')-',A2,'(',
-     1 I3,')  Potential fx. values'/1x,21('=='),' Avge. ',('====')/5x,
-     2 '#data    Av.Unc.    Max.Unc.    Err/Unc   DRMSD'/1x,26('--')
-     3 /I9,1PD12.2,D12.2,0PF11.5,F8.3,A32/1x,24('=='),' calc-obs'/
-     4  7x,'R',7x,'V(r)',8x,'u(V(r))   calc-obs   /u(V(r))'/
-     5  1x,53('-'))
-  639 FORMAT(/1x,55('=')/I5,'  State ',A3,2x,A2,'(',I3,')-',A2,'(',
-     1 I3,')  Potential fx. values'/1x,21('=='),' Avge. ',('====')/5x,
-     2 '#data    Av.Unc.    Max.Unc.    Err/Unc   DRMSD'/1x,26('--')
-     3 /I9,1PD12.2,D12.2,0PF11.5,F8.3/1x,24('=='),' calc-obs'/
-     4  7x,'R',7x,'V(r)',8x,'u(V(r))   calc-obs   /u(V(r))'/
-     5  1x,53('-'))
 c** End of loop over the various (lower) electronic states
    90 CONTINUE
 c=======================================================================
       IF(ISOT.LT.NISTP) THEN
-c** If NISTP > 1, return to print data summaries for other isotopomers
+c** If NISTP > 1, return to print data summaries for other isotopologues
           ISOT= ISOT+1
           GO TO 10
           ENDIF 
@@ -425,7 +419,7 @@ c** If NISTP > 1, return to print data summaries for other isotopomers
   605 FORMAT(1x,16('==='),'== Avge. ========'/"   v' ",
      2  ' v" #data  J"min  J"max  Av.Unc.  Max.Unc.   Err/Unc   DRMSD'/
      1  1x,13('-----'))
-  606 FORMAT(2I4,I6,3x,I4,3x,I4,1x,1P2D9.1,0PF11.5,F8.3,2x,A40)
+  606 FORMAT(2I4,I6,3x,I4,3x,I4,1x,1P2D9.1,0PF11.5,F8.3,2x,A30)
   608 FORMAT(/1x,63('=')/I5,' State ',A3,1x,A2,'(',I3,')-',A2,'(',I3,
      1 ') InfraRed transitions in',I4,' bands')
   610 FORMAT(/1x,35('==')/I6,1x,A2,'(',I3,')-',A2,'(',i3,')  {State ',
@@ -456,7 +450,7 @@ c** If NISTP > 1, return to print data summaries for other isotopomers
      4 1x,59('=')/'   v   J  p     Width',7x,'u(Width)  [calc-obs]  [cal
      5c-obs]/unc'/1x,59('-'))
   622 FORMAT(2I4,A3,1PD14.6,D10.1,D13.2,0PF10.3)
-  624 FORMAT(/1x,39('==')/' Fit of ',I6,' total param to',i7,' data yiel
+  624 FORMAT(/1x,39('==')/' Fit of ',I5,' total param to',i6,' data yiel
      1ds   DRMS(devn.)=',G15.8/1x,39('==')) 
   625 FORMAT('  ... & after correcting for the',I5,' term values with on
      1ly onee transition ...'/' Fit of ',I6,' final param to',i7, ' data
@@ -471,6 +465,33 @@ c** If NISTP > 1, return to print data summaries for other isotopomers
   629 FORMAT(1x,30('=='))
   630 FORMAT(1x,7('--'),' For these',i6,' lines, overall:',F11.5,F8.3)
   632 FORMAT(1x,17('-'),' For these',i6,' lines, overall:',F11.5,F8.3)
+  634 FORMAT(/1x,55('=')/I5,'  State ',A3,2x,A2,'(',I3,')-',A2,'(',
+     1 I3,') ',A9,' Virial coefficients'/1x,10('===='),' Avge. ',
+     2 ('====')/5x,'#data    Av.Unc.    Max.Unc.    Err/Unc   DRMSD'/
+     3 1x,10('-----')/I9,1PD12.2,D12.2,0PF11.5,F8.3,A30/1x,23('=='),
+     4 ' calc-obs'/ 5x,'temp.',4x,'Bvir(obs)',4x,
+     5 'u(Bvir)   calc-obs   /u(Bvir)'/1x,53('-'))
+  635 FORMAT(/1x,55('=')/I5,'  State ',A3,2x,A2,'(',I3,')-',A2,'(',
+     1 I3,') ',A9,' Virial coefficients'/1x,10('===='),' Avge. ',
+     2 ('====')/5x,'#data    Av.Unc.    Max.Unc.    Err/Unc   DRMSD'/
+     3 1x,10('-----')/I9,1PD12.2,D12.2,0PF11.5,F8.3/1x,23('=='),
+     4 ' calc-obs'/ 5x,'temp.',4x,'Bvir(obs)',4x,
+     5 'u(Bvir)   calc-obs   /u(Bvir)'/1x,53('-'))
+  636 FORMAT(F11.3,2F10.2,2F11.3)
+c 637 FORMAT(F11.6,1P,D14.6,d10.1,D13.5,0P,F8.2)
+  637 FORMAT(F11.6,F12.2,F10.2,2F11.3)
+  638 FORMAT(/1x,55('=')/I5,'  State ',A3,2x,A2,'(',I3,')-',A2,'(',
+     1 I3,')  Potential fx. values'/1x,21('=='),' Avge. ',('====')/5x,
+     2 '#data    Av.Unc.    Max.Unc.    Err/Unc   DRMSD'/1x,26('--')
+     3 /I9,1PD12.2,D12.2,0PF11.5,F8.3,2x,A30/1x,24('=='),' calc-obs'/
+     4  7x,'R',7x,'V(r)',8x,'u(V(r))   calc-obs   /u(V(r))'/
+     5  1x,53('-'))
+  639 FORMAT(/1x,55('=')/I5,'  State ',A3,2x,A2,'(',I3,')-',A2,'(',
+     1 I3,')  Potential fx. values'/1x,21('=='),' Avge. ',('====')/5x,
+     2 '#data    Av.Unc.    Max.Unc.    Err/Unc   DRMSD'/1x,26('--')
+     3 /I9,1PD12.2,D12.2,0PF11.5,F8.3/1x,24('=='),' calc-obs'/
+     4  7x,'R',7x,'V(r)',8x,'u(V(r))   calc-obs   /u(V(r))'/
+     5  1x,53('-'))
       END
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 
@@ -520,28 +541,25 @@ c-----------------------------------------------------------------------
               IF( (DIV.GE.4.d0).AND.(DIV.LT.8.d0) ) marker='** '
               IF( (DIV.GE.8.d0) ) marker='***'
               IF(IEP(IBN).GT.0) WRITE(8,602) VP(IBN),JP(I),NEF(EFP(I)),
-     1         VPP(IBN),JPP(I),NEF(EFPP(I)),FREQ(I),UFREQ(I),DFREQ(I),
-     2                                      DFREQ(I)/UFREQ(I),marker
+     1         VPP(IBN),JPP(I),NEF(EFPP(I)),FREQ(I)+DFREQ(I),UFREQ(I),
+     2                              DFREQ(I),DFREQ(I)/UFREQ(I),marker
               IF(IEP(IBN).EQ.0) WRITE(8,602) VP(IBN),VPP(IBN),
-     1                  NEF(EFP(I)),JP(I),JPP(I),NEF(EFPP(I)),FREQ(I),
-     2                      UFREQ(I),DFREQ(I),DFREQ(I)/UFREQ(I),marker
+     1                  NEF(EFP(I)),JP(I),JPP(I),NEF(EFPP(I)),
+     2     FREQ(I)+DFREQ(I),UFREQ(I),DFREQ(I),DFREQ(I)/UFREQ(I),marker
             ELSE
               WRITE(8,602) VP(IBN),JP(I),NEF(EFP(I)),VPP(IBN),JPP(I),
      1                                           NEF(EFPP(I)),DFREQ(I)
               WRITE(4,608) JP(I),EFP(I),JPP(I),EFPP(I),DFREQ(I),UFREQ(I)
-c* Print predictions in alternate (Lyon) format
-c             WRITE(11,606)VP(IBN),VPP(IBN),JPP(I),JP(I)-JPP(I),DFREQ(I)
-c 606 FORMAT(2I4,I5,I4,f13.4)
             ENDIF
           ENDDO
       WRITE(8,604)
       RETURN                       
-  600 FORMAT(1x,59('='),'  calc-obs'/ "   v'  J' p'",
-     1  '  v"  J" p"    FREQ(obs)     u(FREQ)    calc-obs  /u(FREQ)'/
+  600 FORMAT(1x,60('='),'  calc-obs'/ "   v'  J' p'",
+     1  '  v"  J" p"    FREQ(calc)    u(FREQ)     calc-obs  /u(FREQ)'/
      2  1x,69('-'))
   601 FORMAT(1x,36('=')/ "   v'  J' p'",'  v"  J" p"   FREQ(calc)'/
      1  1x,36('-'))
-  602 FORMAT(2(2I4,A3),f14.6,2f12.6,f10.4,1x,A3)
+  602 FORMAT(2(2I4,A3),f14.6,2f13.7,f10.4:1x,A3)
   604 FORMAT(1x,69('-'))
   608 FORMAT(I5,I3,I5,I3,F13.4,F9.4)
       END   

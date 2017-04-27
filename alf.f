@@ -1,29 +1,28 @@
 c***********************************************************************
-      SUBROUTINE ALF(NDP,RH,NCN,RR,V,SWF,VLIM,MAXMIN,KVMAX,NVIBMX,AFLAG,
-     1                                     ZMU,EPS,GV,INNODE,INNR,IWR)
+      SUBROUTINE ALF(NDP,RH,NCN,RR,V,SWF,VLIM,MAXMIN,KVMAX,KVtop,NVIBMX,
+     1                         VMAXX,AFLAG,ZMU,EPS,GV,INNODE,INNR,IWR)
 c***********************************************************************
 c-----------------------------------------------------------------------
 c** The subroutine ALF (Automatic vibrational Level Finder) will
-c   automatically generate the eigenvalues from the first vibrational
-c   level (v=0) to a user specified level (v=KVMAX) or the highest
-c   allowed vibrational level of a given smooth single (or double)
+c   automatically generate the eigenvalues from vibrational level v=0
+c   to a user-specified level (v=KVMAX) or the highest vibrational
+c   level it can find in a given smooth single (or double)
 c   minimum potential (V). These energies are stored and returned to the
 c   calling program in the molecular constants array GV(v=0-KVMAX).
 c** For any errors that cannot be resolved within the subroutine, ALF
 c   returns AFLAG with a value that defines which error had occured.
-c++++++++++   Version last updated  Sept 14, 2014 ++++++++++++++++++++++
-c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-c+++++++++++++   COPYRIGHT 2008-14  by  Robert J. Le Roy   +++++++++++++
+c++++++++++   Version last updated  by Shirin March 24, 2017 +++++++++++
+c+++++++ {tinkered with ICOR cases aimed at double well PEFs +++++++++++
+c+++++++++++++   COPYRIGHT 2008-17  by  Robert J. Le Roy   +++++++++++++
 c   Dept. of Chemistry, Univ. of Waterloo, Waterloo, Ontario, Canada   +
 c    This software may not be sold or any other commercial use made    +
-c     of it without the express written permission of the authors.     +
+c     of it without the express written permission of the author.      +
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c++++++ Please inform me of any bugs, by phone at: (519)888-4051 +++++++
 c+++++++++ by e-mail to: leroy@uwaterloo.ca , or by Post at: +++++++++++
 c+++ Dept. of Chemistry, Univ. Waterloo, Waterloo, Ontario  N2L 3G1 ++++
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** Uses the Schrodinger solver subroutine SCHRQ.
-c
 c** On entry:
 c    NDP    is the number of datapoints used for the potential.
 c    RR(i)  is the array of radial distances (in Angst.), for i= 1, NDP
@@ -34,6 +33,7 @@ c    RR(i)  is the array of distances at which V(i) is defined
 c    V(i)   is the scaled input potential (cm-1).
 c           The scaling factor BFCT is (2*mu/hbar^2)*RH^2.
 c    VLIM   is the potential asymptote (cm-1).
+c    MAXMIN the code STOPS if a search finds more than MAXMIN potential minima
 c    KVMAX  is v for the highest vibrational level we wish to find.
 c    NVIBMX defines dimension of the external Gv array:  GV(0:NVIBMX)
 c    AFLAG  is rot.quantum J for the (centrifugally distorted) potential
@@ -42,17 +42,19 @@ c    EPS    is the energy convergence criterion (cm-1).
 c    INNODE specifies whether wave fx. initiation @ RMIN=RR(1) starts with
 c        a node (normal case: INNODE > 0) or zero slope (when INNODE.le.0)
 c    IWR    specifies the level of printing inside SCHRQ
-c           <> 0 : print error & warning descriptions.
+c         .NE. 0 : print error & warning descriptions.
 c           >= 1 : also print final eigenvalues & node count.
 c           >= 2 : also show end-of-range wave function amplitudes.
 c           >= 3 : print also intermediate trial eigenvalues, etc.
+c     SWF not needed for in/out {I think} but allows use of same long array
 c
 c** On exit:
-c    KVMAX   is vib.quantum number for the highest vibrational level
-c            found (may be less than the input value of KVMAX).
+c    KVtop   is vib.quantum number for the highest vibrational level
+c            found (may be less than the input desired value of KVMAX).
+c    VMAXX   is MAX{energy at barrier maximim,asymptote}
 c    AFLAG   returns calculation outcome to calling program.
 c            >=  0 : found all levels to v=KVMAX{input} & AFLAG= J 
-c             = -1 : KVMAX larger than number of levels found.
+c             = -1 : highest level found  KVtop < KVMAX
 c    GV(v)   contains the vibrational energy levels found for v=0-KVMAX
 c    INNR(v) labels each level as belonging to the inner (INNR = 1) or
 c            outer (INNR = 0) well.
@@ -80,13 +82,13 @@ c
 c** NF counts levels found in automatic search option
 c
       IMPLICIT NONE
-      INTEGER NDP,KVMAX,KV,KVB,KVBB,AFLAG,NF,NBEG,NEND,NVIBMX,
-     1  NBEGG(0:NVIBMX),NENDD(0:NVIBMX),INNR(0:NVIBMX),ICOR,IWR,
+      INTEGER NDP,KVMAX,KVtop,KV,KVB,KVBB,AFLAG,NF,NBEG,NEND,NVIBMX,
+     1  NBEGG(0:NVIBMX),NENDD(0:NVIBMX),INNR(0:NVIBMX),ICOR,IWR,INNSAV,
      2  IPMIN(10),IPMINN,I,LTRY,AWO,INNODE,INNER,LPRWF,JROT,NCN,NPMIN,
      3  NPMAX,MAXMIN
 c
-      REAL*8 RMIN,RH,RBAR,RR(NDP),V(NDP),SWF(NDP),VLIM,EO,ZMU,EPS,
-     1  BZ,BFCT,GAMA,VMIN,VMAX,VMAXX,PMAX, ESAV, ZPEHO, DGDV2, BMAX,
+      REAL*8 RMIN,RH,RBAR,RR(NDP),V(NDP),SWF(NDP),VLIM,EO,EX,ZMU,EPS,
+     1  BZ,BFCT,GAMA,VMIN,VMAX,VMAXX,PMAX, ESAV, ZPEHO, DGDV2, 
      2  GV(0:NVIBMX),VPMIN(10),RPMIN(10),VPMAX(10),RPMAX(10)
 c
       DATA AWO/1/,LPRWF/0/,KVB/-1/,KVBB/-2/
@@ -99,11 +101,15 @@ c** Check that the array dimensions are adequate.
           ENDIF
 c
 c** Initialize the remaining variables and flags.
-      NF= 0                                ! NF is label of level being sought
-      LTRY= 0
-c** Initialize level counters for each well.
+      NF= 0                          ! NF is label of level being sought
+      INNER= 0
+      KV= 0
+      KVB= -1
+      KVtop= KVMAX
+c** Initialize level labels and energies for each well
       DO  I= 0,KVMAX
           INNR(I)= -2
+          GV(I)= 0.d0
           ENDDO
 c** Store input rotational quantum number.
       JROT= AFLAG
@@ -113,7 +119,7 @@ c** Numerical factor  16.857629206 (+/- 0.000,000,013) based on Compton
 c  wavelength of proton & proton mass (u) from 2011 physical constants.
       BZ= ZMU/16.857629206d0
       BFCT= BZ*RH*RH
-c
+!!!   IWR=5             !!! for testing
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** Locate the potential minima.
       NPMIN= 0
@@ -157,45 +163,34 @@ c** Locate any potential maxima past innermost minimum (if they exists).
               RPMAX(NPMAX)= RR(I) 
               VPMAX(NPMAX)= V(I)/BFCT
               IF(VPMAX(NPMAX).GT.VMAX) VMAX= VPMAX(NPMAX)
-              IF(NPMAX.EQ.10) GOTO 20
+              IF(NPMAX.EQ.10) GOTO 20               !! array bound stop
               ENDIF
-          END DO
-   20 IF((NPMAX.EQ.0).OR.
-     1         ((NPMAX.GT.0).AND.(RPMAX(NPMAX).LT.RPMIN(NPMIN)))) THEN
-c** If no maxima found or there is no barrier past outermost minimum,
-c   set an energy maximum to be the value at the end of the radial range.
-          NPMAX= NPMAX+ 1
-          RPMAX(NPMAX)= RR(NDP)
+          ENDDO
+c** Whether or not internal maxima found, add end-of-range as maximum
+   20 NPMAX= NPMAX+ 1
+      RPMAX(NPMAX)= RR(NDP)
 c?? should this limit be set at  VLIM ??  ... naaahhh
-          VPMAX(NPMAX)= V(NDP)/BFCT
-          IF(VPMAX(NPMAX).GT.VMAX) VMAX= VPMAX(NPMAX)
-          ENDIF
+      VPMAX(NPMAX)= V(NDP)/BFCT
+      IF(VPMAX(NPMAX).GT.VMAX) VMAX= VPMAX(NPMAX)
       VMAXX= VPMAX(NPMAX)    
       IF(VMAXX.LT.VLIM) VMAXX= VLIM
 c
 c** For multiple minima, print out potential extrema count
-      IF(NPMIN.GT.1) THEN
+      IF((NPMIN.GT.1).AND.(IWR.NE.0)) THEN
           WRITE(6,614) NPMIN, (VPMIN(I),I= 1,NPMIN)
           WRITE(6,616) (RPMIN(I), I= 1,NPMIN)
           WRITE(6,618) NPMAX, (VPMAX(I),I= 1,NPMAX)
           WRITE(6,616) (RPMAX(I), I= 1,NPMAX)
           IF(NPMIN.GT.MAXMIN) THEN
-c** If potential has more than MAXMIN minima - print warning & stop
+c** If PEF has more than MAXMIN minima - print warning & stop
               WRITE(6,620)
               STOP
               ENDIF
           ENDIF
-c** Set BMAX as barrier height of double-minimum potential
-      BMAX= -9.d+09
-      IF(NPMIN.GT.1) THEN
-          DO  I= 1,NPMAX
-              IF((RPMAX(I).GT.RPMIN(1)).AND.(RPMAX(I).LT.RPMIN(2)))
-     1            BMAX= VPMAX(I)
-              ENDDO
-          ENDIF
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c*** Use harmonic approximation to estimate zero point energy.
       ZPEHO= DSQRT((V(IPMINN+20)-V(IPMINN))/400.d0)/BFCT
+      EO= VMIN + ZPEHO
       EO= VMIN + ZPEHO
       IF(EO.GT.VLIM) THEN
           WRITE(6,612) EO,VLIM
@@ -211,9 +206,11 @@ c
       ICOR= 0
       INNER= 0
   100 KVBB= KVB
+      LTRY= 0
       KVB= KV
       KV= NF
   110 ESAV= EO
+      INNSAV= INNER
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** Call subroutine SCHRQ to find eigenvalue EO and eigenfunction SWF(I).
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -245,14 +242,17 @@ c... if that was unsuccessful, then print out a warning and exit.
               ENDIF
           WRITE(6,624) NF,JROT,ESAV
 c.. eigenvalue of -9.9d9 signifies that eigenvalue search failed completely
-          KVMAX= NF-1
+          KVtop= NF-1
           EO= -9.9d9
-          RETURN
+          AFLAG= -1
+cc        IF(ICOR.EQ.0) GOTO 115
+          IF(JROT.EQ.0) STOP
+          GOTO 115 
           ENDIF
       IF((NPMIN.GT.1).AND.(EO.LT.VPMAX(1))) THEN    
 c++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** Begin by asking if the current level is in a double minimum potential
-c   and if so, that it lies below the barrier maximim and if so, 
+c   and if so, whether it lies below the barrier maximim and if so, 
 c   calculate RBAR = <v,J|r|v,J> to see which well it lies in
           RBAR= 0.d0 
           DO I= NBEG,NEND
@@ -261,11 +261,11 @@ c   calculate RBAR = <v,J|r|v,J> to see which well it lies in
           RBAR= RBAR*RH
           INNER= 0
           IF(RBAR.LT.RPMAX(1)) INNER= 1
-          IF(IWR.GT.0) write(6,777) RBAR,RPMAX(1),INNER
+          IF(IWR.GT.1) write(6,777) RBAR,RPMAX(1),INNER
   777 FORMAT('  Since   RBAR=',F8.3,'   and  RPMAX=',F8.3,'   set INNER
      1=',I2)         
           ENDIF
-      IF(KV.EQ.NF) THEN
+          IF(KV.EQ.NF) THEN
 c++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** If calculated vibrational level is the desired level, NF, then increase
 c   NF by one and call SCECOR to calculate dG/dv and predict next higher level
@@ -293,8 +293,37 @@ c    If so, count it in and skip on to the next one
 c*** NOW, call SCECOR to calculate dG/dv and predict next higher level
 c** EO enters as G(KV) & exits as predicted G(NF=KV+1) w. predicted INNER
           CALL SCECOR(KV,NF,JROT,INNER,ICOR,IWR,EO,RH,BFCT,NDP,NCN,V,
-     1                                          BMAX,VMAXX,VLIM,DGDV2)
-          IF(ICOR.GE.11) GOTO 200
+     1                                               VMAXX,VLIM,DGDV2)
+          IF(ICOR.GE.11) THEN
+              KVtop= KV             !! for case when vD-v < 1 for v=KV
+              GOTO 200
+              ENDIF
+c*** For double well potential if the new energy calculated in within 1
+c*** wavenumber of the previous one and the energy for the previous 2
+c** levels is also within 1 wavenumber of each other, increase this new
+c** energy calculated by DGDV2 (the outer level energy)
+
+         IF (NPMIN.EQ.2) THEN
+          IF (((EO- GV(NF-1)).LE.1).AND.(GV(NF-1)- GV(NF-2)).LE.1) THEN
+               EO= EO+ DGDV2
+            ELSE
+               EO= EO
+          ENDIF
+         ENDIF
+!!!!!!!!!!! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!        PWCN= 2.d0*NCN/FLOAT(NCN-2)
+!!        PWCNinv= 1.d0/PWCN
+!!        IF(KV.GE.1) THEN   !! alternate predictor for next levl: see LEVEL 
+!!            VDMV= ((VLIM-GV(KV))/(VLIM- !GV(KV-1)))**PWCNinv      !!  diary
+!!            VDMV= VDMV/(1.d0 - VDMV)
+!!            EO= VLIM - (VLIM-GV(KV))*((VDMV-
+!1.d0)/VDMV)**PWCN
+!!            IF(IWR.GE.2) WRITE(6,6122) VDMV,EO
+!6122 FORMAT(" Applying NDT to past 2 Eb's predicts
+!(vD-v)=",f9.4,
+!!   1  '   E(next)=',1PD13.5)
+!!            ENDIF
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           IF(EO.GT.VPMAX(NPMAX)) THEN
 c... if estimated energy above highest barrier, set value slightly below it
               EO=  VPMAX(NPMAX) - 0.10d0*DGDV2
@@ -304,44 +333,108 @@ c... if estimated energy above highest barrier, set value slightly below it
 c... SCECOR returned negative phase integral, so quit loop & RETURN
                   WRITE(6,628) JROT,EO
                   AFLAG= -1
-                  GOTO 200
+                  GOTO 110
                   ENDIF
             ENDIF
           LTRY= 0
           GOTO 100
           ENDIF
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-      IF(KV.NE.NF) THEN
+  115    IF(KV.NE.NF) THEN
 c*** If last level found was not the desired one ...
-          IF(INNR(KV).LT.-1) THEN
-c... Record vibrational level (if haven't already) for posterity.
-              GV(KV)= EO
-              INNR(KV)= INNER
-              ENDIF
-          ICOR= ICOR+1
-          IF(ICOR.LE.10) THEN
-c... Call subroutine using semiclassical methods to estimate correct energy
-              CALL SCECOR(KV,NF,JROT,INNER,ICOR,IWR,EO,RH,BFCT,NDP,NCN,
-     1                                        V,BMAX,VMAXX,VLIM,DGDV2)
-              IF(EO.GT.VPMAX(NPMAX)) THEN
-c... if estimated energy above highest barrier, set value below it
-                  KV= 999
-                  EO=  VPMAX(NPMAX) - 0.05d0*DGDV2
+         IF(KV.GE.0) THEN  
+             IF(INNR(KV).LT.-1) THEN
+c... Record vib. level actually found (if haven't already) for posterity.
+                  GV(KV)= EO
+                  INNR(KV)= INNER
                   ENDIF
-              GOTO 100
+              ENDIF
+              IF(KV.EQ.NF-1) THEN         !! if re-found previous level
+cc               EO= EO- DGDV2   
+                  EO= ESAV + (ESAV-EO)  !!Previous energy - new energy (lower)
+                  KV= NF      !! try doubling interval from initial ESAV
+                  GOTO 110
+                  ENDIF
+          ICOR= ICOR+1
+          IF(ICOR.EQ.1) THEN
+c!! on first failure,switch the value of INNER and try again w. same EO
+              INNER= INNSAV
+              IF(INNER.GT.0) THEN
+                  INNER= 0
+                ELSE
+                  INNER= 1
+                ENDIF  
+              EO= ESAV
+              KV= NF
+              GOTO 110
+              ENDIF
+          WRITE(6,*)  "   ICOR=",ICOR,"   v=",KV,"   J=",JROT
+          IF((ICOR.EQ.2).AND.(NPMIN.EQ.1)) THEN
+c!! after second failure for single minimum PEF, assume looking for last
+c    Q'bdd level, so check for proximity to barrier max and if so,
+c   set value slightly below it
+              EO=  VPMAX(1) - 0.10d0*DGDV2
+              ICOR= ICOR+ 10
+              GO TO 110
+              ENDIF
+          IF((ICOR.GE.2).AND.(NPMIN.EQ.2).AND.(ICOR.LE.100)) THEN 
+c!! after second failure for double minimum PEF step down from bad uppr
+c   level in steps of 0.05*spacing
+              IF (ICOR.EQ.2) EX= EO     !! Remember the original trial energy
+                IF (GV(NF-1).GE.EX) THEN
+                  IF((ICOR/2*2).EQ.ICOR) THEN    !! ICOR even
+                  EO= GV(NF-1)+ (GV(NF-1)- EX)*0.02*(ICOR/2)
+                  KV= NF
+                  INNER=0
+                  GO TO 110
+                ELSE                          !! ICOR odd
+                  INNER= INNSAV
+                  IF(INNER.GT.0) INNER= 0
+                  IF(INNER.EQ.0) INNER= 1
+                  EO= ESAV
+                  KV= NF
+                  GOTO 110
+                  ENDIF
+              ELSE        
+                 IF((ICOR/2*2).EQ.ICOR) THEN    !! ICOR even
+                  EO= EX- (EX - GV(NF-1))*0.02*(ICOR/2)
+                  KV= NF
+                  INNER=0
+                  GO TO 110
+                ELSE                          !! ICOR odd
+                  INNER= INNSAV
+                  IF(INNER.GT.0) INNER= 0
+                  IF(INNER.EQ.0) INNER= 1
+                  EO= ESAV
+                  KV= NF
+                  GOTO 110
+                  ENDIF
+                ENDIF
+                ENDIF
+         IF(ICOR.EQ.100) THEN     !!Small intervals so go until Icor 95
+c... Call subroutine using semiclassical methods to estimate correct energy
+c...        CALL SCECOR(KV,NF,JROT,INNER,ICOR,IWR,EO,RH,BFCT,NDP,NCN,
+c...    1                                             V,VMAXX,VLIM,DGDV2)
+c...             IF(EO.GT.VPMAX(NPMAX)) THEN
+c... if estimated energy above highest barrier, set value below it
+c...               KV= 999
+c...                EO=  VPMAX(NPMAX) - 0.05d0*DGDV2
+c...                 ENDIF
+c...             GOTO 100
+              STOP
               ENDIF
 c** If the calculated wavefunction is still for the wrong vibrational
 c   level, then write out a warning return
-          WRITE(6,630) NF,JROT
-          KVMAX= NF-1
-          ENDIF
+            WRITE(6,630) NF,JROT
+            KVtop= NF-1                   !! from  KVMAX= NF-1  17/02/17
+            ENDIF
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   200 IF(AFLAG.LT.0) THEN
-c** If unable to find all KVMAX+1 levels requested, then return KVMAX as
+c** If unable to find all KVMAX+1 levels requested, then return KVtop as
 c  v for the highest vibrational level actually found, and print out the
 c  the energy of that level.
-          KVMAX= KV
-          IF(AWO.NE.0) WRITE(6,632) KVMAX, GV(KVMAX)
+          IF(KV.GE.0) KVtop= KV
+          IF(AWO.NE.0) WRITE(6,632) KVtop, GV(KVtop)
           ENDIF
       RETURN
 c-----------------------------------------------------------------------
@@ -355,8 +448,8 @@ c-----------------------------------------------------------------------
      1  A6,' in this potential. Stop searching after 10.')
   610 FORMAT(/'  *** ALF ERROR ***'/ 4X,'The potential turns over in the
      1 short range region at  R= ',G15.8)
-  612 FORMAT('  *** Harmonic Osc. Zero-Point energy   E=',F9.3,' lies ab
-     1ove  VLIM=',F9.3,', so improvise!!')
+  612 FORMAT('  *** Caution ***  H.Osc.ZPE places   E=',F10.2, '   above
+     1   VLIM=',F12.2)
   614 FORMAT(' Find',I3,'  potential minima:   Vmin=',8F11.3)
   616 FORMAT(15x,'at mesh points   R =',8f11.5)
   618 FORMAT(' Find',I3,'  potential maxima:   Vmax=',8F11.3)
@@ -373,7 +466,7 @@ c-----------------------------------------------------------------------
      1o Phase Integrals')
   630 FORMAT(4x,'ALF fails to find level   v=',i3,', J=',i3)
   632 FORMAT(' ALF finds the highest calculated level is  E(v=',I3,
-     1  ')=',G15.8 /)
-      END
+     1  ')=',1PD15.8 /)
+        END
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 

@@ -1,5 +1,5 @@
 c***********************************************************************
-      SUBROUTINE PREPOTT(LNPT,IAN1,IAN2,IMN1,IMN2,NPP,VLIM,RR,VV,Re)
+      SUBROUTINE PREPOTT(LNPT,IAN1,IAN2,IMN1,IMN2,NPP,VLIM,RR,VV)
 c** Driver subroutine of package to generate a potential function VV(i) 
 c  at the NPP input distances  RR(i)  by reading, interpolating over and
 c  extrapolating beyond a set of up to NPTMX read-in points.  
@@ -38,7 +38,7 @@ c  interpolated over & extrapolated beyong
      1  NCN,NLIN,NPP,NROW,NTP,NUSE
       REAL*8  RFACT,EFACT,RH,RMIN,VLIM,VSHIFT,VV(NPP),RR(NPP),RM2(NPP),
      1  XI(NTPMX),YI(NTPMX),RWR(20),VWR(20),VWRB(3),D1V(3),D1VB(3),
-     2  D2V(3),CNN,RDIST(8),VDIST(8),DVDR(8),D2VDR2(8),Re(NSTATEMX)
+     2  D2V(3),CNN,RDIST(8),VDIST(8),DVDR(8),D2VDR2(8)
 c
 c** Save variables needed for 'subsequent' LNPT.le.0 calls
       SAVE ILR,IR2,NTP,NUSE
@@ -72,7 +72,7 @@ c-------------------------------------------------------------------
 c-------------------------------------------------------------------
       VMIN= 1.0d9
       IF(NTP.LE.0) THEN 
-      WRITE(6,601) !'comments to say PEC generated as analytic ...'
+          WRITE(6,601) !'comments to say PEC generated as analytic ...'
           DO I=1,NPP,8
               DO J=1,8
                   RDIST(J)= RR(J+I-1)
@@ -80,9 +80,8 @@ c-------------------------------------------------------------------
               CALL VGENP(ISTATE,RDIST,VDIST,DVDR,D2VdR2,IDAT)
               DO J=1,8
                   VV(J+I-1)= VDIST(J)
-                  IF(VV(J+I-1).LT.VMIN) THEN
+                  IF(VV(J+I-1).LT.VMIN) THEN    !! locate potential minimum
                       VMIN= VV(J+I-1)
-                      Re= RR(J+I-1)
                       ENDIF    
                   ENDDO
               ENDDO
@@ -187,8 +186,8 @@ c++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       IF(LNPT.GT.0) WRITE(6,624)
       RETURN
   600 FORMAT(' State has energy asymptote:   Y(lim)=',F12.4,'[cm-1]')
-  601 FORMAT(/'NTP is set less than or equal to zero. Therfore Fitting'
-     1                                        ' to analytic function')
+  601 FORMAT(/'NTP is set less than or equal to zero, so use some analyt
+     1ic function')
   602 FORMAT(/' **** ERROR in dimensioning of arrays required'
      1 ,' by GENINT;   No. input points ',I5,' > NTPMX =',I4)
   603 FORMAT(5x, F12.4,f14.4)

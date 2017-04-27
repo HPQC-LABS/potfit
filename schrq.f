@@ -353,7 +353,9 @@ c... note that by construction, at this point  WF(MSAVE)= 1.0
               XEND= RMINN+NEND*H
 c** RATIN & RATOUT  are wave fx. amplitude at inner/outer ends of range
 c  relative to its value at outermost extremum.
-             WRITE(6,603) IT,EO,F,DF,DEPRN,MSAVE,RR,RATIN,RATOUT,
+cc           WRITE(6,603) IT,EO,F,DF,DEPRN,MSAVE,RR,RATIN,RATOUT,
+cc   1                                                  XEND,NBEG,ITP1
+             WRITE(6,603) IT,EO,DEPRN,MSAVE,RR,RATIN,RATOUT,
      1                                                  XEND,NBEG,ITP1
               ENDIF
 c** Test trial eigenvalue for convergence
@@ -386,10 +388,11 @@ c** Convergence fails, so return in error condition
   100 IF(IWR.NE.0) THEN
           IF(IWR.GE.3) WRITE(6,619)
           IF((DABS(RATIN).GT.RATST).AND.(INNODE.GT.0)
-     1                  .AND.(RMIN.GT.0.d0)) WRITE(6,614) JROT,EO,RATIN
+     1            .AND.(RMIN.GT.0.d0)) WRITE(6,614) KVIN,JROT,EO,RATIN
           IF((E.LT.DSOC).AND.(DABS(RATOUT).GT.RATST)) THEN
               WKBTST=0.5d0*DABS(V(NEND)-V(NEND-1))/DSQRT((V(NEND)-E)**3)
-              IF(WKBTST.GT.1.d-3)WRITE(6,615)JROT,EO,RATOUT,RATST,WKBTST
+              IF(WKBTST.GT.1.d-3) WRITE(6,615) KVIN,JROT,EO,RATOUT,
+     1                                                     RATST,WKBTST
               ENDIF
           ENDIF
       KKV = 0
@@ -481,11 +484,13 @@ c** Return in error mode
   999 KV= -1
       RETURN
   601 FORMAT(/' Solve for  v=',I3,'   J=',I3,'   ETRIAL=',1PD15.7,
-     1   '  INNER=',i2,'   WF(1st) WF(NEND)' )
-  602 FORMAT(' ITER    ETRIAL',8X,'F(E)      DF(E)     D(E)',
-     1 6X,'M    R(M)   /WF(M)   /WF(M)   R(NEND) NBEG ITP1'/
-     2  1X,99('-'))
-  603 FORMAT(I4,1PD15.7,3D10.2,0P,I7,F7.2,1P2D9.1,0PF8.2,I6,I5)
+     1   '  INNER=',i2)
+cc602 FORMAT(' ITER    ETRIAL',8X,'F(E)      DF(E)     D(E)',
+cc   1 6X,'M    R(M)   /WF(M)   /WF(M)   R(NEND) NBEG ITP1'/
+cc   2  1X,99('-'))
+  602 FORMAT(' ITER    ETRIAL',7X,'D(E)      M    r(M) wf(1)/wf(M) wf(NE
+     1ND)/wf(M) R(NEND) NBEG ITP1'/1X,85('-'))
+  603 FORMAT(I4,1PD15.7,D10.2,0P,I7,F7.2,1P2D9.1,0PF8.2,I5,I5)
   604 FORMAT('   NOTE:  for  J=',I3,'   EO=',F12.4,' .ge. V(',i3,')=',
      1  F12.4)
   605 FORMAT(/' Solution of radial Schr. equation for   E(v=',I3,',J=',
@@ -507,9 +512,9 @@ c** Return in error mode
      1  F12.4,'  Innermost turning point not found by   M = MSAVE =',I5)
   613 FORMAT(/' *** ERROR in potential array ... V(I) everywhere',
      1 ' too big to integrate with given  increment')
-  614 FORMAT(' *** CAUTION *** For  J=',I3,'  E=',G15.8/16x,
+  614 FORMAT(' ****** For  v=',I3,', J=',I3,'  E=',G15.8/16x,
      1 'WF(first)/WF(Max)=',D9.2,'  suggests  RMIN  may be too large')
-  615 FORMAT(' ** CAUTION ** For  J=',I3,'  E=',1PD13.6,
+  615 FORMAT(' ****** For  v=',I3,',J=',I3,'  E=',1PD13.6,
      1 '  WF(NEND)/WF(Max)=',D8.1,' >',D8.1/4X,'& initialization ',
      2 'quality test ',1PD8.1,' > 1.D-3   so RMAX may be too small')
   616 FORMAT(' ** WARNING *** For  v=',I2,', J=',I3,' at  E=',G14.7,
