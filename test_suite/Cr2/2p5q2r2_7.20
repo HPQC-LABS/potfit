@@ -1,0 +1,27 @@
+ 
+ '1X '  0  0   43  999  0       % (1)SLABL IOMEG VMIN VMAX JTRUNC EFSEL
+  2      0.0000  9  0  50       % PSEL VLIM MAXMIN BOBCN OSEL
+   0.20  45.20  0.0005          % RMIN RMAX RH
+ 
+  3   1.000000 -2  1                % NCMM RHOab IDF IDSTT
+  6   3.51814704D+06  1         % MMLR(1), CmVAL(1), IFXCm(1)
+  8   4.72347299D+07  1         % MMLR(2), CmVAL(2), IFXCm(2)
+ 10   6.81240775D+04  1         % MMLR(3), CmVAL(3), IFXCm(3)
+
+  1.264246788558D+04  0         % De IFXDe
+  1.669881662471D+00  0         % Re IFXRe
+
+  2  0   2  5   2.70D+00        % Nbeta APSE nQB nPB RREF
+ -1.156322525452D+00  0         % BETA 0  IFXBETA 0
+ -3.139952784983D+00  0         % BETA 1  IFXBETA 1
+ -2.283291095010D+00  0         % BETA 2  IFXBETA 2
+
+ -1 -1   3  3    0              % NUA NUB qAD pAD LRad
+
+ -1 -1   0  0                   % NTA NTB qNA pNA
+ 
+ 'AN '  0  0   43  999  0       % (2)SLABL IOMEG VMIN VMAX JTRUNC EFSEL
+ -2      0.0000  1  0  50       % PSEL VLIM MAXMIN BOBCN OSEL
+ 
+ '1A '  0  0   43  999  0       % (3)SLABL IOMEG VMIN VMAX JTRUNC EFSEL
+ -2      0.0000  1  0  50       % PSEL VLIM MAXMIN BOBCN OSEL
