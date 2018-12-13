@@ -1,7 +1,7 @@
 c***********************************************************************
       SUBROUTINE TVSORT(ISTATE,NPTOT,VMAX,NTVALL,NTVSSTAT,TVNAME)
 c***********************************************************************
-c** Subroutine to sort through global data file, and for each isotopologue
+c** Subroutine to sort through global data file, and for each isotopomer
 c  in state ISTATE:  (1) find the number of transitions coupled to each
 c  level (v,J,p),  (2) for levels in order (v,J,p), add a free parameter
 c  for each level involved in one or more transitions, and  (3) label each
@@ -47,7 +47,7 @@ c=======================================================================
       NTVALL(ISTATE)= 0
       NTVSSTAT= 0
       DO  ISOT= 1, NISTP
-c** First ... zero transition counter array for this isotopologue
+c** First ... zero transition counter array for this isotopomer
           DO  I= 0, VMAX(ISTATE,ISOT)
               DO  J= 0, NVIBMX 
                   DO  P= -1,1
@@ -56,7 +56,7 @@ c** First ... zero transition counter array for this isotopologue
                   ENDDO
               ENDDO
           DO  IBAND= 1, NBANDTOT
-c** Then ... search for bands involving isotopologue ISOT in this state
+c** Then ... search for bands involving isotopomer ISOT in this state
               IF(((IEP(IBAND).EQ.ISTATE).OR.(IEPP(IBAND).EQ.ISTATE))
      1          .AND.(ISTP(IBAND).EQ.ISOT).AND.(IEP(IBAND).GE.0)) THEN
                   DO  I= IFIRST(IBAND), ILAST(IBAND)
@@ -148,7 +148,7 @@ c
   604 FORMAT(/' *** ARRAY DIMENSION PROBLEM ***  JPP(ISTATE)=',i2,
      1  ',ISOT=',I2,')=',i3,'  greater than  NVIBMX=',i4)
   606 FORMAT(/'  Absolute zero of energy is fixed at level {v=',i3,
-     1 ', J=',i3,', p=',i2,'}'/1x,12('**'),10x,'of isotopologue ',i2,
+     1 ', J=',i3,', p=',i2,'}'/1x,12('**'),10x,'of isotopomer ',i2,
      2 ' of  State ',A3)
   608 FORMAT(' For ',A2,'(',i3,')-',A2,'(',I3,')  fit to',i5,
      1 ' T(v,J,p) term values,'/20x,'of which',i5,' are involved in only

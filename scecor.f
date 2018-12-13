@@ -1,23 +1,24 @@
 c***********************************************************************
       SUBROUTINE SCECOR(KV,KVLEV,JROT,INNER,ICOR,IWR,EO,RH,BFCT,NDP,
-     1                                         NCN,V,VMAXX,VLIM,DGDV2)
+     1                                    NCN,V,BMAX,VMAXX,VLIM,DGDV2)
 c** Subroutine calculates (approximate!) semiclassical estimate of 
 c  dG/dv for level  v= KV  with energy  EO [cm-1]  on potential 
 c  {V(i),i=1,NDP} (in 'internal BFCT units' {V[cm-1]*BFCT}), and uses
 c  those results to estimate energy of level  KVLEV (usually = KV+1)
 c** If the 'clever' semiclassical procedure fails - try a brute force
 c  step-by-step search, using alternately INNER & OUTER well starting
-c** ICOR counts interal E-corrn. cycles.  ICOR= 100 if find: (vD-v) < 1 
+c** BMAX is internal barrier maximum energy for double-well case, 
+c   and very large negative number for single-well potential
 c** VMAXX is height of outermost maximum, or VLIM for barrierless case
 c** On return, negative DGDV2 signals error!  No phase integrals found
 c=======================================================================
-c             Version date:  18 February 2016  {removed BMAX}
+c                   Version date:  14 Sept 2014
 c***********************************************************************
       INTEGER I,II,I1,I2,I3,I4,IV1,IV2,INNER,ICOR,JROT,KV,KVB,KVLEV,
      1  KVDIF,NDP,NCN,IDIF,BRUTE,IB,IWR,NPMAX
       REAL*8 EO,DE0,RH,BFCT,ARG2,ARG3,EINT,VPH1,VPH2,DGDV1,DGDV2,DGDVM,
      1  DGDV2P,DGDVB,DGDVBP,EBRUTE,DEBRUTE,DE1,DE2,Y1,Y2,Y3,RT,ANS1,dv1,
-     2  dv2,ANS2,XDIF,VLIM,VMAXX,PNCN,PWCN,PP1,VDMV,ENEXT,V(NDP)
+     2  dv2,ANS2,XDIF,VLIM,VMAXX,BMAX,PNCN,PWCN,PP1,VDMV,ENEXT,V(NDP)
       SAVE BRUTE,EBRUTE,DEBRUTE,DGDVB
       DATA DGDVB/-1.d0/,KVB/-1/
 c
@@ -96,6 +97,26 @@ c   use N-D theory estimate based on 'vD-v' from ratio  of Eb to dG/dv
      1                                                VPH2-0.5d0,DGDV2
               WRITE(6,606) VDMV,ENEXT
               ENDIF    
+ccccccc????? Redundant stuff now ???????????????????????????????????????
+cc        IF((KV.LT.(KVLEV-1)).AND.(DGDVB.GT.0.d0)) THEN
+c... If got wrong level (KV not one below KVLEV) and NOT first call ...
+cc            IF((EO-BMAX).GT.(2.d0*DGDV2)) THEN
+c  For eneries well above the barrier of a double minimum potrnti
+c... 'Normal' case: use B-S plot area to estimate correct energy
+cc                DE0= KVDIF*(DGDV2- 0.5d0*(DGDV2-DGDVB)/DFLOAT(KV-KVB))
+cc                EO= EO+ DE0 
+cc                KV= KVB
+cc                KVLEV= KV+1
+cc                RETURN
+cc              ELSE
+c... but close to barrier in double-well potential, switch to 'BRUTE'
+cc                BRUTE=BRUTE+ 1
+cc                DGDV1= DGDV2
+cc                XDIF= SIGN(1,KVDIF)  
+cc                GOTO 54
+cc              ENDIF
+cc            ENDIF
+ccccccc????? Redundant stuff now ???????????????????????????????????????
           IF(VDMV.LT.1.d0) THEN
               ICOR= 100
               IF(IWR.GT.0) WRITE(6,604) KV,EO

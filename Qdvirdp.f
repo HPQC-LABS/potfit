@@ -1,11 +1,11 @@
+
 c***********************************************************************
       SUBROUTINE QDVIRDP(IDAT,ISTATE,ZMU,BVIR,dBVIRdP)
 c=======================================================================
 c  This subroutine calculates the second virial coefficient BVIR and its
 c  partial derivatives with respect to the various parameters. It is 
 c  used when virial data has been input into the program.  It performs a
-c  quantum phase shift calculation with quantum corrections
-c .................INCOMPLETE.................................
+c  quantum phase shift calcultion with quantum corrections
 c=======================================================================
       INCLUDE 'arrsizes.h'
       INCLUDE 'BLKPOT.h'

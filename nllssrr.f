@@ -4,9 +4,13 @@ c***********************************************************************
 c**  Program for performing linear or non-linear least-squares fits and
 c  (if desired) automatically using sequential rounding and refitting 
 c  to minimize the numbers of parameter digits which must be quoted [see
-c  R.J. Le Roy, J.Mol.Spectrosc. 191, 223-231 (1998)].         23/03/16
+c  R.J. Le Roy, J.Mol.Spectrosc. 191, 223-231 (1998)].         21/08/04
+c
+c  21/08/04 test version ... attempting to stablize non-linear fits by
+c               scaling back parameter changes by factor of 4 or 16
+c         [ & corrects  CM  for constrained-parameter cases!]
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-c             COPYRIGHT 1998-2016  by  Robert J. Le Roy                +
+c             COPYRIGHT 1998-2004  by  Robert J. Le Roy                +
 c   Dept. of Chemistry, Univ. of Waterloo, Waterloo, Ontario, Canada   +
 c    This software may not be sold or any other commercial use made    +
 c      of it without the express written permission of the author.     +
@@ -19,7 +23,7 @@ c  calculated from the input parameter values {PV(j)}.
 c** A user MUST SUPPLY subroutine  DYIDPJ  to generate the predicted
 c  value of each datum and the partial derivatives of each datum w.r.t.
 c  each parameter (see below) from the current trial parameters.
-c  
+c
 c** On entry: 
 c    NDATA  is the number of data to be fitted 
 c    NPTOT  the total number of parameters in the model (.le.NPMAX).
@@ -28,7 +32,6 @@ c           dimensionless deviation)=DSE  from them & YU(i)
 c    NPMAX is the maximum number of model parameters allowed by current
 c          external array sizes.  Should set internal NPINTMX = NPMAX 
 c          (may be freely changed by the user).
-c    CYCMAX is the upper bound on the allowed number of iterative cycles
 c    IROUND .ne. 0  causes Sequential Rounding & Refitting to be 
 c             performed, with each parameter being rounded at the 
 c            |IROUND|'th sig. digit of its local incertainty.
@@ -41,10 +44,12 @@ c        1/[u^2 +{(c-o)^2}/3].  ROBUST > 1 uses normal 1/u^2 on first
 c        fit cycle and  'robust' on later cycles.
 c    LPRINT  specifies the level of printing inside NLLSSRR
 c          if: =  0, no print except for failed convergence.
-c             .NE.0  also print DRMSD and convergence tests on each cycle
-c                    and indicate nature of convergence
-c              >= 1  also parameters changes & uncertainties, each cycle
+c               < 0  only converged, unrounded parameters, PU & PS's
+c              >= 1  print converged parameters, PU & PS's
 c              >= 2  also print parameter change each rounding step
+c              >= 3  also indicate nature of convergence
+c              >= 4  also print convergence tests on each cycle
+c              >= 5  also parameters changes & uncertainties, each cycle
 c    IFXP(j)  specifies whether parameter  j  is to be held fixed
 c           [IFXP > 0] or to be freely varied in the fit [IFXP= 0]
 c    YO(i)  are the NDATA 'observed' data to be fitted  
@@ -83,9 +88,9 @@ c***********************************************************************
      1 NDATA,NPTOT,NPMAX,NPARM,NPFIT,JFIX,QUIT,ROBUST,
      2 IFXP(NPMAX),JFXP(NPINTMX)
       REAL*8  YO(NDATA), YU(NDATA), YD(NDATA), PV(NPTOT), PU(NPTOT), 
-     1 PS(NPTOT),PSS(NPINTMX),PC(NPINTMX),PX(NPINTMX),
+     1 PS(NPTOT),PSS(NPINTMX),PC(NPINTMX),PCS(NPINTMX),PX(NPINTMX),
      2 PY(NPINTMX),CM(NPMAX,NPMAX), F95(10),
-     3 RMSR, RMSRB, DSE, TSTPS, TSTPSB, TSTPU, TFACT, S, YC, Zthrd
+     3 RMSR, RMSRB, DSE, TSTPS, TSTPSB, TSTPU, TFACT, S, UU, Zthrd
       DATA F95/12.7062D0,4.3027D0,3.1824D0,2.7764D0,2.5706D0,2.4469D0,
      1  2.3646D0,2.3060D0,2.2622D0,2.2281D0/
       IF((NPTOT.GT.NPMAX).OR.(NPTOT.GT.NPINTMX).OR.(NPINTMX.NE.NPMAX)
@@ -138,6 +143,9 @@ c** PSS is the array of Saved Parameter Sensitivities from previous
 c   iteration to be carried into dyidpj subroutine - used in predicting
 c   increment for derivatives by differences.
                   PSS(I)= PS(I)
+c** PCS is the saved array of parameter changes from previous iteration
+c   to be used (if necessary) to attempt to stablize fit
+                  PCS(I)= PC(I)
                   PS(I) = 0.D0
                   PU(I) = 0.D0
                   PX(I) = 0.D0
@@ -153,7 +161,7 @@ c
 c** Begin by forming the Jacobian Matrix from partial derivative matrix
           DO  I = 1,NDATA
 c** User-supplied subroutine DYIDPJ uses current (trial) parameter 
-c  values {PV} to generate predicted datum # I [y(calc;I)=YC] and its
+c  values {PV} to generate predicted datum # I [y(calc;I)=UU] and its
 c  partial derivatives w.r.t. each of the parameters, returning the 
 c  latter in 1-D array PC.  See dummy sample version at end of listing.
 c* NOTE 1: if more convenient, DYIDPJ could prepare the y(calc) values 
@@ -162,7 +170,7 @@ c     returned the values here one datum at a time (for I > 1).]
 c* NOTE 2: the partial derivative array PC returned by DYIDPJ must have
 c     an entry for every parameter in the model, though for parameters 
 c     which are held fixed [JFXP(j)=1], those PC(j) values are ignored.
-              CALL DYIDPJ(I,NDATA,NPTOT,YO(I),YC,PV,PC)
+              CALL DYIDPJ(I,NDATA,NPTOT,YO(I),UU,PV,PC)
               IF(NPARM.LT.NPTOT) THEN
 c** For constrained parameter or sequential rounding, collapse partial 
 c   derivative array here
@@ -185,18 +193,18 @@ c  ... now continue collapsing partial derivative array
                           ENDIF
                       ENDDO
                   ENDIF
-              YD(I)= YC - YO(I)
-              S = 1.D0/YU(I)
+              YD(I)= UU - YO(I)
+              S = 1.D0 / YU(I)
 cc *** For 'Robust' fitting, adjust uncertainties here
               IF(Zthrd.GT.0.d0) S= 1.d0/DSQRT(YU(I)**2 + Zthrd*YD(I)**2)
-              YC= -YD(I)*S
-              DSE= DSE+ YC*YC
+              UU = - YD(I) * S
+              DSE= DSE+ UU*UU
               IF(NPARM.GT.0) THEN
                   DO  J = 1,NPARM
                       PC(J) = PC(J)*S
                       PS(J) = PS(J)+ PC(J)**2
                       ENDDO
-                  CALL QROD(NPARM,NPMAX,NPMAX,CM,PC,PU,YC,PX,PY)
+                  CALL QROD(NPARM,NPMAX,NPMAX,CM,PC,PU,UU,PX,PY)
                   ENDIF
               ENDDO
           RMSR= DSQRT(DSE/NDATA)
@@ -229,11 +237,11 @@ c** Get (upper triangular) "dispersion Matrix" [variance-covarience
 c  matrix  without the sigma^2 factor].
           DO  I = 1,NPARM
               DO  J = I,NPARM
-                  YC = 0.D0
+                  UU = 0.D0
                   DO  K = J,NPARM
-                      YC = YC + CM(I,K) * CM(J,K)
+                      UU = UU + CM(I,K) * CM(J,K)
                       ENDDO
-                  CM(I,J) = YC
+                  CM(I,J) = UU
                   ENDDO
               ENDDO
 c** Generate core of Parameter Uncertainties  PU(j) and (symmetric)
@@ -259,11 +267,11 @@ c  Parameter Sensitivities PS
 c** Use DSE to get final (95% confid. limit) parameter uncertainties PU
 c** Calculate 'parameter sensitivities', changes in PV(j) which would 
 c  change predictions of input data by an RMS average of  DSE*0.1/NPARM
-          YC= DSE*0.1d0/DFLOAT(NPARM)
+          UU= DSE*0.1d0/DFLOAT(NPARM)
           S= DSE*TFACT
           DO  J = 1,NPARM
               PU(J)= S* PU(J)
-              PS(J)= YC*DSQRT(NDATA/PS(J))
+              PS(J)= UU*DSQRT(NDATA/PS(J))
               ENDDO
 c========End of core linear least-squares step==========================
 c ... early exit if Rounding cycle finished ... 
@@ -276,7 +284,7 @@ c** Next test for convergence
               TSTPS= MAX(TSTPS,DABS(PC(J)/PS(J)))
               TSTPU= MAX(TSTPU,DABS(PC(J)/PU(J)))
               ENDDO
-          IF(LPRINT.NE.0) WRITE(6,604) ITER,RMSR,TSTPS,TSTPU
+          IF(LPRINT.GE.4) WRITE(6,604) ITER,RMSR,TSTPS,TSTPU
 c** Now ... update parameters (careful about rounding)
           DO  J= 1,NPTOT
               IF(JFXP(J).GT.0) THEN
@@ -287,6 +295,7 @@ c** If this parameter constrained to equal some earlier parameter ....
                      ENDIF
   668 FORMAT(' Constrain  PV('i3,') = PV(',I3,') =',1pd15.8,
      1 '  on cycle',i3)
+
 c** If parameter held fixed (by input or rounding process), shift values
 c   of change, sensitivity & uncertainty to correct label.
                   IF(J.LT.NPTOT) THEN
@@ -303,17 +312,35 @@ c   of change, sensitivity & uncertainty to correct label.
                   PV(J)= PV(J)+ PC(J)
                 ENDIF
               ENDDO
-          IF(LPRINT.GE.1) WRITE(6,612) (J,PV(J),PU(J),PS(J),PC(J),
+          IF(LPRINT.GE.5) WRITE(6,612) (J,PV(J),PU(J),PS(J),PC(J),
      1                                                      J=1,NPTOT)
           IF(ITER.GT.1) THEN
 c** New Convergence test is to require  RMSD to be constant to 1 part in
 c   10^7 in adjacent cycles (unlikely to occur by accident)
               IF(ABS((RMSR/RMSRB)-1.d0).LT.1.d-07) THEN
-                  IF(LPRINT.NE.0) WRITE(6,607) ITER,
+                  IF(LPRINT.GE.3) WRITE(6,607) ITER,
      1                                      ABS(RMSR/RMSRB-1.d0),TSTPS
                   GO TO 54
                   ENDIF
               ENDIF
+c** Test for convergence:  for every parameter desire:
+c  |parameter change| < |parameter sensitivity|,  but after iteration #5
+c  STOP iterating if  Max{|change/sens.|} increases AND 
+c  Max{|change/unc.|} < 0.01
+c             IF(TSTPS.GT.1.d0) THEN
+c                 IF((RMSR.GT.RMSRB).AND.(ITER.GT.5)) THEN
+c                     IF((TSTPU.LT.1.d-2).OR.((TSTPU.LT.0.5d0).AND.
+c    1                                             (ITER.GT.10))) THEN
+c                         IF(LPRINT.GE.3) WRITE(6,606) ITER,TSTPU,RMSR
+c                         GO TO 54
+c                         ENDIF
+c                     ENDIF
+c               ELSE
+c                 IF(LPRINT.GE.3) WRITE(6,608) ITER,TSTPS,RMSR
+c                 GO TO 54
+c               ENDIF
+c             ENDIF
+cc        CALL FLUSH(6)
           IF(ROBUST.GT.0) Zthrd= 1.d0/3.d0
    50     CONTINUE
       WRITE(6,610) NPARM,NDATA,ITER,RMSR,TSTPS,TSTPU
@@ -387,11 +414,11 @@ c ... First, select parameter JFIX with the largest relative uncertainty
                   ENDIF
               ENDDO 
         ENDIF
-      YC= PV(JFIX)
+      UU= PV(JFIX)
       CALL ROUND(JROUND,NPMAX,NPTOT,NPTOT,JFIX,PV,PU,PS,CM)
       JFXP(JFIX)= 1
       IF(LPRINT.GE.2)
-     1       WRITE(6,614) JFIX,YC,PU(JFIX),PS(JFIX),JFIX,PV(JFIX),RMSR
+     1       WRITE(6,614) JFIX,UU,PU(JFIX),PS(JFIX),JFIX,PV(JFIX),RMSR
       NPARM= NPARM-1
       IF(NPARM.EQ.0) THEN
 c** After rounding complete, make one more pass with all non-fixed 
@@ -447,14 +474,16 @@ c
      1  1PD8.1,' < 0.01   DRMSD=',D10.3)
   607 FORMAT(/' Full',i3,'-cycle convergence:  {ABS(RMSR/RMSRB)-1}=',
      1  1PD9.2,'  TSTPS=',D8.1)
+  608 FORMAT(/' Full',i3,'-cycle convergence:  Max{|change/sens.|}=',
+     1  1PD8.1,' < 1   DRMSD=',D10.2)
   610 FORMAT(/ ' !! CAUTION !! fit of',i5,' parameters to',I6,' data not
      1 converged after',i3,' Cycles'/5x,'DRMS(deviations)=',1PD10.3,
      2 '    test(PS) =',D9.2,'    test(PU) =',D9.2/1x,31('**'))
   612 FORMAT((3x,'PV(',i4,') =',1PD22.14,' (+/-',D8.1,')    PS=',d8.1,
      1  '   PC=',d9.1))
   614 FORMAT(' =',39('==')/' Round Off  PV(',i4,')=',1PD21.13,' (+/-',
-     1 D9.2,')    PS=',d9.2/4x,'fix PV(',I4,') as ',D19.11,
-     2 '  & refit:  DRMS(deviations)=',D12.5)
+     1 D9.2,')    PS=',d9.2/4x,'fix PV(',I4,') as ',D21.13,
+     2 '  & refit:  DRMS(deviations)=',D10.3)
   616 FORMAT(/i6,' data fit to',i5,' param. yields  DRMS(devn)=',
      1 1PD14.7:'  tst(PS)=',D8.1)
       END
@@ -560,11 +589,13 @@ c ... to avoid problems from overflow of I*4 integers ...
           XRND= XRND*FCT
           END IF
       IRND= NINT(CRND)
-      CNST= IRND*FCT+ XRND                      !! rounded constant !!
+      CNST= IRND*FCT+ XRND
+c????????????????
 c** Zero parameters more aggressively ... if unc. > 2* value
         if(dabs(PU(IPAR)/PV(IPAR)).GT.2.d0) then
             cnst= 0.d0
             endif
+c????????????????
 c** Now ... combine rounding change in parameter # IPAR, together with
 c  correlation matrix CM and parameter uncertainties PU to predict
 c  changes in other parameters to optimally compensate for rounding off
@@ -587,12 +618,15 @@ c  Statistics, UW),
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 
 c***********************************************************************
-c     SUBROUTINE DYIDPJ(I,NDATA,NPTOT,YC,PV,PD)
+c     SUBROUTINE DYIDPJ(I,NDATA,NPTOT,UU,PV,PD)
 c** Illustrative dummy version of DYIDPJ for the case of a fit to a
 c  power series of order (NPTOT-1) in X(i). ***  For datum number-i, 
 c  calculate and return  PD(j)=[partial derivatives of datum-i] w.r.t. 
 c  each of the free polynomial coefficients varied in the fit 
-c  (for j=1 to NPTOT).  
+c  (for j=1 to NPTOT).  **  Elements of the integer array IFXP indicate
+c  whether parameter j is being held fixed [IFXP(j) > 0] or varied in
+c  the fit [IFXP(j).le.0].  If the former, the partial derivative 
+c  for parameter j should be  PD(j)= 0.0. 
 c=====================================================================
 c** Use COMMON block(s) to bring in values of the independent variable 
 c  [here XX(i)] and any other parameters or variables needeed to

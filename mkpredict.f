@@ -12,7 +12,7 @@ c  VMIN(s) and VMAX(s) are the bounds on the vibrational energy range
 c      for state 's' specified in the main input file.
 c** On return:
 c  NDAT(v,i,s)  is the number of transitions associated with
-c    vibrational level-v of isotopologue-i of state-s [for NDEGB < 0 case]
+c    vibrational level-v of isotopomer-i of state-s [for NDEGB < 0 case]
 c** This subroutine reads in band specifications on Channel-5 and writes
 c   the transition energy specifications to channel-4
 c-----------------------------------------------------------------------
@@ -68,7 +68,7 @@ c     and lower electronic states, respectively.  LABLP=LABLPP for IR or
 c     MW transitions within a given electronic state
 c** VP & VPP are the v' & v" values identifying the band;
 c** PP & PPP specify rotational parities (+/- 1) of upper and lower levels
-c** MN1 & MN2 identify the isotopologue
+c** MN1 & MN2 identify the isotopomer
 c** Generate 'lines' for  J"= 0 to JMAXX subject to selection rule that
 c  Delta(J) runs from J2DL to J2DU in steps of J2DD
 c-----------------------------------------------------------------------
@@ -84,7 +84,7 @@ c  upper state is 2'nd one considered [SLABL(2)]
       IEP(IBAND)= NSTATES
       WRITE(4,400) VP(IBAND),VPP(IBAND),LABLP,LABLPP,MN1,MN2
       ISOT= 0
-c** Determine the correct isotopologue-number for this band.
+c** Determine the correct isotopomer-number for this band.
       DO  I= 1,NISTP
           IF((MN1.EQ.MN(1,I)).AND.(MN2.EQ.MN(2,I))) ISOT= I
           ENDDO

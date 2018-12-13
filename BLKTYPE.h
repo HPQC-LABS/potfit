@@ -1,5 +1,6 @@
 c=======================================================================
 c** Type statements & common blocks for characterizing transitions
+c
       REAL*8  AVEUFREQ(NPARMX),MAXUFREQ(NPARMX)
       INTEGER NTRANSFS(NISTPMX,NSTATEMX),
      1  NTRANSVIS(NISTPMX,NSTATEMX,NSTATEMX),
@@ -9,9 +10,9 @@ c** Type statements & common blocks for characterizing transitions
      4  NBANDIR(NISTPMX,NSTATEMX),NBANDMW(NISTPMX,NSTATEMX),
      5  NVVPP(NISTPMX,NSTATEMX),NWIDTH(NISTPMX,NSTATEMX),
      6  NEBPAS(NISTPMX,NSTATEMX),NVIRIAL(NISTPMX,NSTATEMX),
-     7  NAcVIR(NISTPMX,NSTATEMX),NBANDS(NISTPMX)
+     7  NBANDS(NISTPMX)
 c
       COMMON /BLKTYPE/AVEUFREQ,MAXUFREQ,NTRANSFS,NTRANSVIS,NTRANSIR,
      1  NTRANSMW,NBANDFS,NBANDEL,NBANDVIS,NBANDIR,NBANDMW,NVVPP,NWIDTH,
-     2  NEBPAS,NVIRIAL,NAcVIR,NBANDS
+     2  NEBPAS,NVIRIAL,NBANDS
 c=======================================================================

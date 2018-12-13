@@ -3,17 +3,16 @@ c***********************************************************************
 c***********************************************************************
 c** Subroutine to read, do book-keeping for, and print summary of
 c  experimental data used in fits to spectroscopic data for one or more
-c  electronic states and one or more isotopologues. 
-c             ********* Version of 11 July 2015 *********
-c             last change ... add acoustic virial data type
+c  electronic states and one or more isotopomers. 
+c             ********* Version of 9 July 2014 *********
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-c++  COPYRIGHT 1997-2015 by  Robert J. Le Roy & Dominique R.T. Appadoo +
+c++  COPYRIGHT 1997-2011 by  Robert J. Le Roy & Dominique R.T. Appadoo +
 c   Dept. of Chemistry, Univ. of Waterloo, Waterloo, Ontario, Canada   +
 c    This software may not be sold or any other commercial use made    +
 c      of it without the express written permission of the authors.    +
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** The present program version can treat seven types of experimental
-c   experimental data, for up to NISTPMX isotopologues of a given species.
+c   experimental data, for up to NISTPMX isotopomers of a given species.
 c   The data are read in grouped as "bands", as (fluorescence) series, 
 c   as binding energies (from photoassociation spectroscopy), as a set
 c   of Bv values for a given electronic state, and [in a potential-fit
@@ -31,7 +30,7 @@ c (vi) "experimental" B_v values for vibrational levels of one of the
 c    electronic states.
 c (vii) Widths of tunneling predissociation quasibound levels (this 
 c    option only meaningful for program DSPotFit).  
-c (ix) 2'nd virial coefficient data (also only for dPotFit applications)
+c (ix) 2'nd virial coefficient data (also only for DPotFit applications)
 c (x)  Potential function value from some other source (e.g., ab initio
 c      energy high on the repusive wall.
 c-----------------------------------------------------------------------
@@ -54,29 +53,28 @@ c  PRINP > 0  turns on the printing of a summary description of the data.
 c** On Return:
 c  UCUTOFF (cm-1)  is the smallest uncertainty in the (accepted) data
 c  NDAT(v,i,s)  is the number of transitions associated with 
-c    vibrational level-v of isotopologue-i of state-s [for NDEGB < 0 case]
+c    vibrational level-v of isotopomer-i of state-s [for NDEGB < 0 case]
 c** This subroutine reads in the experimental data on channel-4
 c-----------------------------------------------------------------------
       INCLUDE 'arrsizes.h'
-      INCLUDE 'BLKPOT.h'
+c
+      INTEGER I,IBN,COUNT,IBAND,
+     1  VMX(NSTATEMX),ISOT,NBND,ESP,ESPP,ISTATE,ISTATEE,MN1,MN2,PRINP,
+     2  FSOMIT,VMAXesp,VMINesp,VMAXespp,VMINespp,JTRUNCesp,JTRUNCespp
+      INTEGER NOWIDTHS,NDAT(0:NVIBMX,NISTPMX,NSTATEMX),PASok(NSTATES)
+      REAL*8 UCUTOFF,UMIN,TOTUFREQ
+      CHARACTER*3 NEF(-1:1)
+      CHARACTER*3 LABLP,LABLPP
+      CHARACTER*2 OLDSLABL(-5:0)
       INCLUDE 'BLKISOT.h'
       INCLUDE 'BLKDATA.h'
       INCLUDE 'BLKPARAM.h'
       INCLUDE 'BLKTYPE.h'
 c
-      INTEGER I,IBN,COUNT,IBAND,
-     1  VMX(NSTATEMX),ISOT,NBND,ESP,ESPP,ISTATE,ISTATEE,MN1,MN2,PRINP,
-     2  FSOMIT,VMAXesp,VMINesp,VMAXespp,VMINespp,JTRUNCesp,JTRUNCespp
-      INTEGER NOWIDTHS,NDAT(0:NVIBMX,NISTPMX,NSTATEMX),PASok(NSTATEMX)
-      REAL*8 UCUTOFF,UMIN,TOTUFREQ
-      CHARACTER*3 NEF(-1:1)
-      CHARACTER*3 LABLP,LABLPP
-      CHARACTER*2 OLDSLABL(-6:0)
-c-----------------------------------------------------------------------
       DATA NEF/'  f','   ','  e'/
+c-----------------------------------------------------------------------
 c** maintain compatibility with old labeling method      
-      OLDSLABL(-6)=' '                       !! awaiting new data type
-      OLDSLABL(-5)='VA'
+      OLDSLABL(-5)='VS'
       OLDSLABL(-4)='VR'
       OLDSLABL(-3)='VV'
       OLDSLABL(-2)='WI'
@@ -111,7 +109,6 @@ c** Initialize counters for book-keeping on input data
               NWIDTH(ISOT,ISTATE)= 0
               NEBPAS(ISOT,ISTATE)= 0
               NVIRIAL(ISOT,ISTATE)= 0
-              NAcVIR(ISOT,ISTATE)= 0
               DO  I= 1,NSTATES
                   NTRANSVIS(ISOT,ISTATE,I)= 0
                   NBANDEL(ISOT,ISTATE,I)= 0
@@ -128,7 +125,7 @@ c========================================================================
 c** Begin loop to read in data, band(or series)-by-band(or series).
 c  STOP when run out of bands or when encounter a negative vibrational
 c  quantum number.
-c** Read all data for each isotopologue at one time.
+c** Read all data for each isotopomer at one time.
       IBAND= 0
    10 CONTINUE
       IBAND= IBAND+1
@@ -143,8 +140,9 @@ c   VP & VPP,  (ii) a two-character electronic-state alphameric label
 c   {enclosed in single quotes; e.g., 'X0' or 'A1'} for the upper
 c   (LABLP) and lower (LABLP) state, and  (iii) integers NM1 & NM2 are
 c   the mass numbers [corresponding to input atomic numbers AN(1) & 
-c   AN(2)] identifying the particular isotopologue.  Note that LABLP also
+c   AN(2)] identifying the particular isotopomer.  Note that LABLP also
 c   identifies the type of data in the 'band' or data-group (see below).
+c
 c** LABLP = LABLPP  and  VP = VPP  for a microwave band
 c   LABLP = LABLPP  and  VP.ne.VPP  for an infrared band 
 c   LABLP = 'FLS'  identifies this data group/band as a fluorescence 
@@ -171,9 +169,6 @@ c            case, parameters VP, VPP are dummy variables.
 c   LABLP = 'VIR' identifies this data group/band as a set of virial 
 c           coefficients for electronic state LABLPP.  In this case, 
 c           parameters VP, VPP are dummy variables.
-c   LABLP = 'VAC' identifies this data group/band as a set of virial 
-c           coefficients for electronic state LABLPP.  In this case, 
-c           parameters VP, VPP are dummy variables.
 c** STOP reading when run out of bands OR when read-in VPP is negative   
 c-----------------------------------------------------------------------
       IF((PRINP.EQ.2).OR.(PRINP.EQ.-2)) THEN
@@ -186,15 +181,15 @@ c-----------------------------------------------------------------------
       IF(VP(IBAND).LT.0) GO TO 40
       IEP(IBAND)= -99
       IEPP(IBAND)= -99
-      DO  I= -6, 0
+      DO  I= -5, 0
           IF(LABLP.EQ.OLDSLABL(I)) LABLP= SLABL(I)
           IF(LABLPP.EQ.OLDSLABL(I)) LABLPP= SLABL(I)
           ENDDO
-      DO  I= -6, NSTATES
+      DO  I= -5, NSTATES
           IF(LABLP.EQ.SLABL(I)) IEP(IBAND)= I
           IF(LABLPP.EQ.SLABL(I)) IEPP(IBAND)= I
           ENDDO
-c** Check that this isotopologue is one of those chosen to be fitted ...
+c** Check that this isotopomer is one of those chosen to be fitted ...
       ISOT= 0
       DO  I= 1,NISTP
           IF((MN1.EQ.MN(1,I)).AND.(MN2.EQ.MN(2,I))) ISOT= I
@@ -211,12 +206,9 @@ c----------------------------------------------------------------------
    12     READ(4,*) TEMP(COUNT),FREQ(COUNT),UFREQ(COUNT)
 c----------------------------------------------------------------------
           YUNC(COUNT)= UFREQ(COUNT)
-c ... a negative input distance implies end of potential energy data set
           IF(TEMP(COUNT).GT.0.d0) THEN
-c ... if this isotope or state not considered, ignore this datum
-              IF((ISOT.LE.0).OR.(ESPP.LT.-6)) GOTO 12
-c ... if no potential used, ignore this datum  
-              IF(PSEL(ESPP).LT.0) GOTO 12  
+c ... a negative input distance implies end of potential energy data set
+              IF(ISOT.LE.0) GOTO 12     !!! Was missing
               IB(COUNT)= IBAND
               COUNT= COUNT+1
               GOTO 12
@@ -224,7 +216,7 @@ c ... if no potential used, ignore this datum
               GOTO 18
             ENDIF
           ENDIF
-      IF((IEP(IBAND).EQ.-4).OR.(IEP(IBAND).EQ.-5)) THEN
+      IF(IEP(IBAND).EQ.-4) THEN
 c** For case in which the data are virial coefficients
           COUNT= COUNT+ 1
           IFIRST(IBAND)= COUNT
@@ -233,12 +225,10 @@ c----------------------------------------------------------------------
    14     READ(4,*) TEMP(COUNT),FREQ(COUNT),UFREQ(COUNT)
 c----------------------------------------------------------------------
           YUNC(COUNT)= UFREQ(COUNT)
-c ... negative input 'temperature' implies end of virial/PE data set
           IF(TEMP(COUNT).GT.0.d0) THEN
-c ... if this isotope or state not considered, ignore this datum
-              IF((ISOT.LE.0).OR.(ESPP.LT.-6)) GOTO 14
-c ... if no potential used, ignore this datum  
-              IF(PSEL(ESPP).LT.0) GOTO 14  
+c ... negative input 'temperature' implies end of virial/PE data set
+              IF(ISOT.LE.0) GOTO 14
+c ... if this isotope not considered in the fit, ignore this datum
               IB(COUNT)= IBAND
               COUNT= COUNT+1
               GOTO 14
@@ -266,12 +256,10 @@ c... now ... for the case of spectroscopic data ...
           VMAXespp= VMAX(ESPP,ISOT)
           VMINespp= VMIN(ESPP,ISOT)
           JTRUNCespp= JTRUNC(ESPP)
-!!        IF(ISOT.GT.1) THEN       !! not needed - done in calling program
-!!            VMAXespp= INT((VMAX(ESPP,ISOT)+0.5d0)/RSQMU(ISOT)-0.5d0) !! added
-!!            VMINespp= INT((VMIN(ESPP,ISOT)+0.5d0)/RSQMU(ISOT)-0.5d0) !! added
-!!            JTRUNCespp= INT(JTRUNC(ESPP)/RSQMU(ISOT))
-!!            ENDIF
-cc        VMAXesp= VMAX(ESPP,ISOT)         ?????? Huh ??????/
+          IF(ISOT.GT.1) THEN
+              JTRUNCespp= INT(JTRUNC(ESPP)/RSQMU(ISOT))
+              ENDIF
+          VMAXesp= VMAX(ESPP,ISOT)
           ENDIF
       IF((ESP.GT.0).AND.(ISOT.GT.0)) THEN
           VMAXesp= VMAX(ESP,ISOT)
@@ -314,10 +302,9 @@ c=======================================================================
       IF(EFPP(COUNT).LT.-1) EFPP(COUNT)= -1
 c** At end of a band, exit from implicit loop
       IF((JPP(COUNT).LT.0).OR.(JP(COUNT).LT.0)) GOTO 18
-c** If this band is not for one of the chosen isotopologues or states
-c  or 'property' datum w. no PEC, omit this datum from the fit
-      IF((ISOT.EQ.0).OR.(ESPP.LT.-6)) GO TO 15
-      IF((PSEL(ESPP).LT.0).AND.(ESP.LT.0)) GO TO 15
+c** If this band is not for one of the isotopomers chosen to be fitted,
+c  omit its data from the fit
+      IF(ISOT.EQ.0) GO TO 15
 c** If this band involves electronic states other than those chosen to 
 c   be treated, omit its data from the fit
       IF((ESP.EQ.-99).OR.(ESPP.EQ.-99)) GO TO 15
@@ -494,28 +481,22 @@ c ... and then set up labels/ranges/properties for each of them
           ENDIF
 c
 c** NOTE ... in IBB array a last index counts bands of this type for 
-c  this isotopologue of this electronic state.  Expect to find all 
-c  potential fx. values, virial coeficients, Tunneling Widths, PAS 
-c  binding energies, virial coeffts, ... etc. in a single group.
-          IF(ESP.EQ.-5) THEN
-c** Data are Acoustic Virial Coefficients for electronic state IEPP= ESPP
-          NAcVIR(ISOT,ESPP)= NTRANS(IBAND)
-          IBB(ISOT,ESPP,9,1)= IBAND
-          ENDIF
-c
-          IF(ESP.EQ.-4) THEN
-c** Data are pressure Virial Coefficients for electronic state IEPP= ESPP
+c  this isotopomer of this electronic state.  Expect to find all 
+c  potential fx. values, virial coeficients, Tunneling Widths or PAS 
+c  binding energies in a single group.
+      IF(ESP.EQ.-4) THEN
+c** Data are Virial Coefficients for electronic state IEPP= ESPP
           NVIRIAL(ISOT,ESPP)= NTRANS(IBAND)
           IBB(ISOT,ESPP,8,1)= IBAND
           ENDIF
 c
-          IF(ESP.EQ.-3) THEN
+      IF(ESP.EQ.-3) THEN
 c** Data are not transition energies, but rather values of the potential
 c  function at particular distances for electronic state s=IEPP  
-              WRITE(6,612) LABLPP,ISOT
-              NVVPP(ISOT,ESPP)= NTRANS(IBAND)
-              IBB(ISOT,ESPP,5,1)= IBAND
-              ENDIF
+          WRITE(6,612) ESPP,ISOT
+          NVVPP(ISOT,ESPP)= NTRANS(IBAND)
+          IBB(ISOT,ESPP,5,1)= IBAND
+          ENDIF
 c
       IF(ESP.EQ.-2) THEN
 c** Data are tunneling predissociation linewidths (in cm-1) for levels
@@ -549,7 +530,7 @@ c** Now, write a summary of the input data to the output file
       UCUTOFF= UMIN
       IF(FSOMIT.GT.0) WRITE(6,650) FSOMIT
       IF(PRINP.LE.0) RETURN
-c** Write a summary of the data, one isotopologue at a time.
+c** Write a summary of the data, one isotopomer at a time.
    26 WRITE(6,602) NBANDS(ISOT), (NAME(I),MN(I,ISOT),I=1,2)
 c
       DO 50 ISTATE= 1,NSTATES
@@ -636,14 +617,9 @@ c** Book-keeping for Virial data
           WRITE(6,642) NVIRIAL(ISOT,ISTATE), SLABL(ISTATE), 
      1                                      (NAME(I),MN(I,ISOT),I=1,2)
           ENDIF
-      IF(NAcVIR(ISOT,ISTATE).GT.0) THEN
-c** Book-keeping for Acoustic Virial data
-          WRITE(6,644) NAcVIR(ISOT,ISTATE), SLABL(ISTATE), 
-     1                                      (NAME(I),MN(I,ISOT),I=1,2)
-          ENDIF
    50 CONTINUE
       IF(ISOT.LT.NISTP) THEN
-c** If NISTP > 1, return to print data summaries for other isotopologues
+c** If NISTP > 1, return to print data summaries for other isotopomers
           ISOT= ISOT+1
           GO TO 26
           ENDIF 
@@ -675,8 +651,8 @@ c** If NISTP > 1, return to print data summaries for other isotopologues
      1  A3,'}--{State ',A3,'} Transitions in',i4,' Bands'/1x,35('--')/
      2 "   v'",'  v"  #data   Jmin   Jmax  Avge.Unc.  Max.Unc.'/
      3 1x,25('--'))
-  612 FORMAT(/" NOTE that read-in potential fx. values for   ISTATE= ",
-     1   A3,'   ISOT=',i2/32x,' must be input as a single "band" or data
+  612 FORMAT(/" NOTE that read-in potential fx. values for   ISTATE=",
+     1   i2,'   ISOT=',i2/32x,' must be input as a single "band" or data
      1 group')
   614 FORMAT(1x,38('==')/I5,' Fluorescence transitions into State ',
      1 A3,2x,A2,'(',I3,')-',A2,'(',I3,')  in',i5,' series'/
@@ -709,8 +685,6 @@ cc   2  10x,'into one "band" or data group.')
      1IMIT of',i6)
   642 FORMAT(1x,70('=')/I4,' State ',A3,1x,A2,'(',I3,')-',A2,
      1 '(',I3,') Virial coefficients included in data set' )
-  644 FORMAT(1x,70('=')/I4,' State ',A3,1x,A2,'(',I3,')-',A2,
-     1 '(',I3,') Acoustic Virial coefficients included in data set' )
   650 FORMAT(/' Data input IGNORES',i4,' fluorescence series consisting'
      1 ,' of only  onee  line!')
       END

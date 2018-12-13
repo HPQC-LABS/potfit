@@ -20,8 +20,8 @@ c-----------------------------------------------------------------------
       INCLUDE 'BLKBOB.h'
 c-----------------------------------------------------------------------
 c** Type statements for input or local variables
-      INTEGER I, I1, ISTATE, IISTP, m, MMN, VTST
-      CHARACTER*3 SLABL(-6:NSTATEMX)
+      INTEGER I, ISTATE, IISTP, m, MMN, npow, VTST
+      CHARACTER*3 SLABL(-5:NSTATEMX)
       REAL*8 ZMASE, RR(NPNTMX), VV(NPNTMX)
       DATA ZMASE /5.4857990945D-04/
 c
@@ -43,10 +43,10 @@ c         = 0 : Use a fixed potential defined by LEVEL's PREPOT routine
 c         = 1 : Use an Expanded Morse Oscillator EMO(p) potential
 c         = 2 : Use a Morse/Long-Range (MLR) Potential.
 c         = 3 : Use a Double-Exponential Long-Range (DELR) Potential.
-c         = 4 : Use a Surkus Generalized Potential Energy Function (GPEF).
-c         = 5 : Use a Tiemann/Hannover-polynomial-potential (HPP)
-c         = 6 : Use a Tang-Toennies type potential 
-c         = 7 : Use an Aziz'ian HFD-C type potential 
+c         = 4 : Use a Tiemann/Hannover-polynomial-potential (HPP)
+c         = 5 : Use a Tang-Toennies type potential 
+c         = 6 : Use an Aziz'ian HFD-C type potential 
+c         = 7 : Use a Surkus Generalized Potential Energy Function (GPEF).
 c  MAXMIN(s)= 1  for a regular single-minimum potential, for which finding
 c       more than one signals a bad model:  =2 for a double-minimum case
 c  VLIM(s)  is the fixed absolute energy of the potential asymptote
@@ -130,10 +130,10 @@ c-----------------------------------------------------------------------
           NwCFT(ISTATE)= -1
           RETURN
           ENDIF
-      IF((PSEL(ISTATE).GE.2).AND.(PSEL(ISTATE).NE.4)) THEN
+      IF((PSEL(ISTATE).GE.2).AND.(PSEL(ISTATE).LE.6)) THEN
 c-----------------------------------------------------------------------
-c** For MLR, DELR and HPP, GTT or HFD potentials, read number of terms NCMM
-c    in the {damped} inverse-power long-range tail
+c** For MLR, DELR, HPP, TT or HFD-C potential read number of terms NCMM in 
+c   the {damped} inverse-power long-range tail
 c    uLR(R) = - SUM_{i=1}^{NCMM} Dm(R;MMLR(i) * CmVAL(i)/R**MMLR(i) 
 c** If rhoAB .LE. 0.0  have NO damping functions: all  Dm(R)= 1.0
 c   If rhoAB > 0.0  recommend the molecule-dependent radial scaling 
@@ -149,15 +149,12 @@ c  freely (when .LE.0), held fixed at the read-in value (when =1) or held
 c  fixed at the value for another state, in which case the parameter value
 c  'IFXCm(m,ISTATE)' is the no. of the parameter it is constrained to be = to
 c
-c** For Alkali dimer (nS + nP) states use Aubert-Frecon [PRA 55, 3458 (1997)] 
-c  2x2 ULR(r) with NCMM= 7 & MMLR= {x, 3, 3, 6, 6, 8, 8} where x=0 for 
-c  the A^1\Sigma_u^+ state and x=-1  for the b^3\Pi_u state, and the
-c  read-in C_m's are, DELTAE, C3Sig, C3Pi,C6Sig, C6Pi, C8Sig and C8Pi .
-c  FOR the 3x3 cases NCMM=10 and MMLR= {x, 3, 3, 3, 6, 6, 6, 8, 8, 8}
-c  where   x= -2 for the c(1^3\Sigma_g^+) state (the lowest 3x3 root),
-c  while  CnVAL= {DELTAE, C3Sig, C3Pi1, C3Pi3, C6Sig, C6Pi1, C6Pi3, 
-c  C8Sig, C8Pi1, and C8Pi3 .
-c  For all Cm's assume units units are cm-1*Angst^m   
+c** For Li2(2S + 2P) states use Aubert-Frecon [PRA 55, 3458 (1997)] 
+c  ULR(r) with NCMM= 6 & MMLR= {3, x, 6, 6, 8, 8} where x=0 for 
+c  the A^1\Sigma_u^+ state, x=-1  for the c(1^3\Sigma_g^+) state & x=-2 for
+c  the b^3\Pi_u state.
+c**  For Aziz'ian HDF form (PSEL=6) input Cm's are dimensionless
+c   'reduced' values.  Otherwise (PSEL< 6) units are cm-1*Angst^m
 c=======================================================================
           READ(5,*) NCMM(ISTATE), rhoAB(ISTATE), IVSR(ISTATE),
      1                                                   IDSTT(ISTATE)
@@ -165,8 +162,11 @@ c=======================================================================
               READ(5,*) MMLR(m,ISTATE), CmVAL(m,ISTATE), IFXCm(m,ISTATE)
               ENDDO
 c=======================================================================
+c** Note that HPP potentials have no damping
+          IF(PSEL(ISTATE).EQ.4) rhoAB(ISTATE)= -1.d0
           ENDIF
-      IF(PSEL(ISTATE).EQ.4) THEN
+c-----------------------------------------------------------------------
+      IF(PSEL(ISTATE).EQ.7) THEN
 c-----------------------------------------------------------------------
 c** For GPEF potential, read parameters defining the expansion variable
 c                                 p    p      p      p
@@ -174,7 +174,7 @@ c                  y(R;k,a,b) = (R - Re )/(a*R + b*Re )
 c=======================================================================
           READ(5,*) AGPEF(ISTATE), BGPEF(ISTATE)
 c=======================================================================
-          RREFq(ISTATE)= -1.d0
+          RREF(ISTATE)= -1.d0
           ENDIF
       WRITE(6,626) SLABL(ISTATE),RMIN(ISTATE),RMAX(ISTATE),RH(ISTATE)
 c
@@ -192,156 +192,108 @@ c=======================================================================
       READ(5,*) DE(ISTATE), IFXDE(ISTATE)
       READ(5,*) RE(ISTATE), IFXRE(ISTATE)
 c=======================================================================
-      IF(PSEL(ISTATE).GE.4) IFXDE(ISTATE)= 1
-      IF(PSEL(ISTATE).GE.5) IFXRE(ISTATE)= 1
+      IF((PSEL(ISTATE).EQ.4).OR.(PSEL(ISTATE).EQ.6)) IFXDE(ISTATE)= 1
 c=======================================================================
-c** Read parameters defining exponent coefficient or PEF expansion vble.
-c  qPOT(s)  is the power  q  for  beta(r)  exponent expansion variable
-c  pPOT(s)  is the power  p  radial and  beta(r)  switching fx. variables
-c  RREFq(s)/RREFq(s)  defines the reference distance in the exponent vble
-c      yq= (r^qPOT - RREFq^qPOT)/(r^qPOT + RREFq^qPOT)
-c* for  RREFq.le.0, fix   RREFq = Re; for  RREFp.le.0, fix RREFp=RRWFq
-c*  ... and allowing for fitting ... read IFXrefq/p as needed
-c=======================================================================
-      READ(5,*) qPOT(ISTATE), RREFq(ISTATE), IFXrefq(ISTATE)
-c=======================================================================
-          IF((RREFq(ISTATE).LE.0).OR.(PSEL(ISTATE).GE.4)) THEN
-              RREFq(ISTATE)= RE(ISTATE)
-              IFXrefq(ISTATE)= 1
-              ENDIF
-      IF(PSEL(ISTATE).EQ.2) THEN
-cc  For MLR  also  yp= (r^pPOT - RREFp^pPOT)/(r^pPOT + RREFp^pPOT)
-c  APSE(s).LE.0  to use {p,q}-type MLR exponent polynomial of order Nbeta(s)
-c     if APSE(s) > 0, \beta(r) is Pashov spline defined by Nbeta(s) points
-c    expansion variable: 
-c=======================================================================
-          READ(5,*) pPOT(ISTATE),RREFp(ISTATE),IFXrefp(ISTATE),
-     1                                                    APSE(ISTATE)
-c=======================================================================
-          IF(RREFp(ISTATE).LE.0) THEN
-              IFXrefp(ISTATE)= 1
-              ENDIF
-          ENDIF
-c=======================================================================
+c** Read parameters defining the exponent coefficient function \beta(r)
+c  NSR(s).ge.0  to use {p,q}-type exponent polynomial of order Nbeta(s)
+c     if NSR(s) < 0, \beta(r) is Pashov spline defined by Nbeta(s) points
 c* Nbeta(s) is order of the beta(r) exponent polynomial or # spline points
+c  nPB(s)  is the power  p  for  beta(r)  basic exponent variable
+c  nQB(s)  is the power  q  for  beta(r)  exponent expansion variable
+c  RREF(s)  defines the reference distance in the potential exponent 
+c    expansion variable:  * for  RREF.le.0 , define parameter  RREF = Re
+c      * for  RREF.gt.0 , fix parameter  RREF   at its read-in value
 c=======================================================================
-      READ(5,*) Nbeta(ISTATE)
+      READ(5,*) NSR(ISTATE), Nbeta(ISTATE), nPB(ISTATE), nQB(ISTATE),
+     1                                                     RREF(ISTATE)
 c=======================================================================
       IF(Nbeta(ISTATE).GE.NbetaMX) THEN
-          WRITE(6,648) ISTATE,Nbeta(ISTATE),NbetaMX
+          WRITE(6,755) ISTATE,Nbeta(ISTATE),NbetaMX
+  755 FORMAT(/'  For ISTATE=',I2,'  read-in  Nbeta=',I3,'  while NbetaMX
+     1=',I3,'  so STOP!!' )
           STOP
           ENDIF
-      IF((PSEL(ISTATE).EQ.2)) THEN    !! to test if pPOT big enuf for MLR
+      IF((PSEL(ISTATE).EQ.2)) THEN
           MMN= MMLR(NCMM(ISTATE),ISTATE)- MMLR(1,ISTATE)
-          IF(MMLR(1,ISTATE).le.0)
-     1                  MMN= MMLR(NCMM(ISTATE),ISTATE)- MMLR(2,ISTATE)
-          IF((NCMM(ISTATE).GT.1).AND.(pPOT(ISTATE).LE.MMN)) 
-     1                                    WRITE(6,628) pPOT(ISTATE),MMN
-          ENDIF
-      IF((PSEL(ISTATE).EQ.7).AND.((Nbeta(ISTATE).NE.5).AND.
-     1                                     (Nbeta(ISTATE).NE.2))) THEN
-          WRITE(6,629) Nbeta(ISTATE)
-          STOP
-          ENDIF
-      IF(PSEL(ISTATE).NE.2) APSE(ISTATE)= 0
-      IF(APSE(ISTATE).GT.0) THEN
-          DO  I= 1, Nbeta(ISTATE)
-c-----------------------------------------------------------------------
-c** For SE-MLR  exponent is a natural spline function with values BETA
-c       at the yq values yqBETA, and fixed to equal yqINF at  yqBETA=1
-c=======================================================================
-              READ(5,*)yqBETA(I,ISTATE),BETA(I,ISTATE),IFXBETA(I,ISTATE)
-c=======================================================================
-              ENDDO
-          IF(yqBETA(Nbeta(ISTATE),ISTATE).LT.1.d0) THEN
-c** Ensure outer endppoint is at yq= 1.d0
-              Nbeta(ISTATE)= Nbeta(ISTATE)+1
-              yqBETA(Nbeta(ISTATE),ISTATE)= 1.d0
-              IFXBETA(Nbeta(ISTATE),ISTATE)= 1
+          IF((NCMM(ISTATE).GT.1).AND.(nPB(ISTATE).LE.MMN)) THEN
+              IF(MMN.LE.0) THEN
+                 WRITE(6,629)
+                 STOP
+              ELSE
+                 WRITE(6,628) nPB(ISTATE),MMN
+                 ENDIF
               ENDIF
           ENDIF
-c** For non-MLR or the PE-MLR, exponent  \beta(yp)  is  'conventional'
-      IF((Nbeta(ISTATE).GE.0).AND.(APSE(ISTATE).LE.0)) THEN
-          I1= 0
-          IF(PSEL(ISTATE).GE.6) I1= 1   !! omit \beta(0) for TT or HFD
-          IF(PSEL(ISTATE).EQ.6) THEN
-              Nbeta(ISTATE)= 9
-              IDSTT(ISTATE)= 0
-              IVSR(ISTATE)= +2
-              ENDIF
-          IF(PSEL(ISTATE).EQ.5) Nbeta(ISTATE)= Nbeta(ISTATE) + 3
-          DO  I= I1, Nbeta(ISTATE)
+      IF(((PSEL(ISTATE).eq.3).AND.(NSR(ISTATE).lt.0))) 
+     1                                      NSR(ISTATE)= Nbeta(ISTATE)
+      IF(PSEL(ISTATE).EQ.5) Nbeta(ISTATE)= 0
+      IF(PSEL(ISTATE).EQ.6) Nbeta(ISTATE)= 4
+      IF((NSR(ISTATE).GE.0).OR.(PSEL(ISTATE).NE.5)) THEN
+c** For NSR .ge.0  the MLR exponent  \beta(yp)  is  'conventional'
+c  Huang-type constrained polynomial in  yp with polynomial order  NSR
+c   for r < r_e and  NBETA for r.ge.r_e
+          npow= MAX(NSR(ISTATE),Nbeta(ISTATE))
+          IF(PSEL(ISTATE).EQ.4) npow= npow+3
+          IF(Nbeta(ISTATE).GE.0) THEN
+              DO  I= 0,npow
 c** Read in trial initial trial parameters for exponent \beta(r)
 c
 c  BETA(i,s)   contains the expansion parameters defining the potential
-c**  for  PSEL.LE.3 : read-in values are the {Nbeta+1} beta_i  exponent
+c    for  PSEL.LE.3 : read-in values are the {npow+1} beta_i  exponent
 c                   exponent expansion parameters defining the potential
-c**  for  PSEL = 4  : read-in values are leading coefficients in 
-c                Surkus' Generalized Potential Energy Function (GPEF).
-c**  for  PSEL = 5  : read in the  {1+Nbeta} expansion parameters plus
+c    for  PSEL = 4  : read in the  {1+Nbeta} expansion parameters plus
 c                         b, RINN, and ROUT  of the HPP form
-c**  for  PSEL = 6,  Nbeta=9  Read in the \\beta_i of Eq.(32) for i=1-9
-c** For PSEL=7: >> set Nbeta=4 to use the single global damping function for 
-c   HFD-A,B, & C potentials:  f_1(x)= beta(0)*exp{-\beta(1)/x)^beta(2)}
-c     while exponent is {\alpha*x + beta(3)*x^2} and  \gamma= beta(4).
-c**             >> set Nbeta=3 to combine the overall damping function 
-c      f_2(x)= [1 - r^{\beta(0)} exp{-\beta(1)(r}]  , and in this case
-c     while exponent is {\alpha*x + beta(2)*x^2} and  \gamma= beta(3).
+c** For PSEL=6 (HFD-C) Nbeta=4 and D(x)= beta(0)*exp{-\beta(1)/x)^beta(2)}
+c     while exponent is {\alpha*x + beta(3)*x^2} and  \gamma= beta(4) 
+c    for  PSEL = 7  : read-in values are leading coefficients in 
+c                Surkus' Generalized Potential Energy Function (GPEF).
 c  IFXBETA(i,s) indicates whether each potential expansion coefficient
 c             coefficient will be:    = 1: held fixed at read-in values.
 c                                  .LE. 0: determined from fits.
 c=======================================================================
-             READ(5,*) BETA(I,ISTATE), IFXBETA(I,ISTATE)
+                  READ(5,*) BETA(I,ISTATE), IFXBETA(I,ISTATE)
 c=======================================================================
-             IF(PSEL(ISTATE).GE.5) IFXBETA(I,ISTATE)= 1
-             ENDDO
-          ENDIF    
-c** Note that HPP and (most) HFD potentials assume no damping
-      IF((PSEL(ISTATE).EQ.7).and.(Nbeta(ISTATE).EQ.2)) THEN
-          IVSR(ISTATE)= 0        !! for HFD-D potentials
-          IDSTT(ISTATE)= 1
-          ENDIF
-      IF((PSEL(ISTATE).EQ.5).OR.((PSEL(ISTATE).EQ.7).and.
-     1                    (Nbeta(ISTATE).EQ.4))) rhoAB(ISTATE)= -1.d0
-      IF(PSEL(ISTATE).EQ.5) THEN
+                  ENDDO
+              ENDIF    
+        ELSE
+          npow= Nbeta(ISTATE)
+          DO  I= 1,npow
+c-----------------------------------------------------------------------
+c** For NSR .lt 0  exponent is a natural spline function with values BETA
+c       at the yp values ypBETA, and fixed to equal ypINF at  ypBETA=1
+c=======================================================================
+              READ(5,*)ypBETA(I,ISTATE),BETA(I,ISTATE),IFXBETA(I,ISTATE)
+c=======================================================================
+              ENDDO
+          Nbeta(ISTATE)= Nbeta(ISTATE)+1
+          ypBETA(Nbeta(ISTATE),ISTATE)= 1.d0
+          IFXBETA(Nbeta(ISTATE),ISTATE)= 1
+        ENDIF
+      IF(PSEL(ISTATE).EQ.4) THEN
 c** Constraints for Tiemann polynomial potential ....
-          pPOT(ISTATE)= 1
-          qPOT(ISTATE)= 1
+          nPB(ISTATE)= 1
+          nQB(ISTATE)= 1
           IFXDe(ISTATE)= 1
-          RREFq(ISTATE)= RE(ISTATE)
+          RREF(ISTATE)= RE(ISTATE)
           ENDIF
 c=======================================================================
 c** Read parameters defining the BOB adiabatic radial functions
-c*  NUA/NUB(s)  specifies the order of the polynomial in  yp  defining 
+c  NUA/NUB(s)  specifies the order of the polynomial in  yp  defining 
 c              the adiabatic BOB function for atom A/B
 c         if < 0   do not read in any adiabatic BOB function parameters
-c*  pAD(s)/qAD(s)  are the powers defining the expansion variables
-c*  LRad(s) determines whether (if > 0) or not (if .LE.0) isotope shift
-c     C_m factors for atoms-A 'dCmA' and atoms B 'dCmB' are to be read in
-c*  UA/UB(a,s)   are the adiabatic BOB function expansion coefficients
-c*  IFXU(A/B)(a,s) indicates whether each expansion coefficient is to be
+c  pAD(s)/qAD(s)  are the powers defining the expansion variables
+c  UA/UB(a,s)   are the adiabatic BOB function expansion coefficients
+c  IFXU(A/B)(a,s) indicates whether each expansion coefficient is to be
 c           > 0 :  held fixed at read-in value, or
 c        .le. 0 :  varied in the fit
-c*  UAinf/UBinf  is the limiting asymptotic value of uA(r)/uB(r), as per
+c  UAinf/UBinf  is the limiting asymptotic value of uA(r)/uB(r), as per
 c               Theochem paper [internally stored as  UA(NUA+1), etc.]
-c*  IFXUAinf/IFXUBinf  specifies whether (>0) or not (.le.0)  UAinf/UBinf 
+c  IFXUAinf/IFXUBinf  specifies whether (>0) or not (.le.0)  UAinf/UBinf 
 c               is to be held fixed at the read-in value
 c=======================================================================
-      READ(5,*) NUA(ISTATE),NUB(ISTATE),qAD(ISTATE),pAD(ISTATE),
-     1                                                    LRad(ISTATE)
+      READ(5,*) NUA(ISTATE),NUB(ISTATE),pAD(ISTATE),qAD(ISTATE)
       IF(((NUA(ISTATE).GE.0).OR.(NUB(ISTATE).GE.0))
      1              .AND.(PSEL(ISTATE).EQ.1)) pAD(ISTATE)= qAD(ISTATE)
-c... NOTE never read delta Cm values unless PSEL = 1-3
-          IF((PSEL(ISTATE).LT.1).OR.(PSEL(ISTATE).GT.3)) LRad(ISTATE)=0
-          IF(LRad(ISTATE).GT.0) THEN
-c. if desired, read \delta{Cm} values dCmA & dCmB for atoms-A & B one per line
-              DO m=1,NCMM(ISTATE)
-                  READ(5,*) dCmA(m,ISTATE)
-                  ENDDO
-              DO m=1,NCMM(ISTATE)
-                  READ(5,*) dCmB(m,ISTATE)
-                  ENDDO
-          ENDIF
       IF(NUA(ISTATE).GE.0) THEN
 c... NOTE that  parameters  NUA(ISTATE)+1  are  UAinf & IFXUAinf ...
           NUA(ISTATE)= NUA(ISTATE)+ 1
@@ -374,7 +326,7 @@ c
 c  NTA/NTB(s)  specifies the order of the polynomial in  yp  defining
 c              the non-adiabatic centrifugal BOB functions for atom A/B
 c         if < 0   do not read in any non-adiabatic BOB parameters
-c  qNA(s)  is  the power defining the the form of the expansion variable
+c  pNA(s)/qNA(s)  are the powers defining the expansion variables
 c  TA/TB(a,s)   are the non-adiabatic centrifugal BOB expansion coeffts
 c  IFXTA/IFXTB(a,s) indicates whether each expansion coefficient is to be
 c           > 0 :  held fixed at read-in value, or
@@ -384,7 +336,7 @@ c               Theochem paper [internally stored as  TA(NTA+1), etc.]
 c  IFXTAinf/IFXTBinf  specifies whether (>0) or not (.le.0)  TAinf/TBinf 
 c               is to be held fixed at the read-in value
 c=======================================================================
-      READ(5,*) NTA(ISTATE), NTB(ISTATE), qNA(ISTATE), pNA(ISTATE)
+      READ(5,*) NTA(ISTATE), NTB(ISTATE), pNA(ISTATE), qNA(ISTATE)
       IF(NTA(ISTATE).GE.0) THEN
 c... NOTE that  parameters  NTA(ISTATE)+1  are  TAinf & IFXTAinf ...
           NTA(ISTATE)= NTA(ISTATE)+ 1
@@ -487,16 +439,12 @@ c-----------------------------------------------------------------------
      1  '   to   RMAX=',f6.2,'   with mesh   RH=',f8.5)
   628 FORMAT(' ***** WARNING  p=',i2,' .LE.[MMLR(NCMM)-MMLR(1)]=',i2,
      1  ' *****'/"   so tail of MLR exponential will 'pollute' u_{LR}(r)
-     2 behaviour"/(2x,19('****')))
-  629 FORMAT(' *** ERROR *** For HFD potentials  Nbeta=',I3,'  should be
-     1  5  or  2 !!')
+     2 behaviour"/(1x,20('****')))
+  629 FORMAT(' ** Since  [MMLR(NCMM)-MMLR(1)].le.0,   STOP !!')
   640 FORMAT(/' ', A3,' state energies referenced to f-parity levels')
   642 FORMAT(/' ', A3,' state energies referenced to the mid-point betwe
      1en e and f-parity levels')
   644 FORMAT(/' ', A3,' state energies referenced to e-parity levels')
   646 FORMAT(/' *** INPUT ERROR ***  |efREF=',i3,'| > 1')
-  648 FORMAT(/'  For ISTATE=',I2,'  read-in  Nbeta=',I3,'  while NbetaMX
-     1=',I3,'  so STOP!!' )
       END
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
-
