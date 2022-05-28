@@ -1,8 +1,8 @@
 # option to select compiler (intel 'ifort', or SUN 'f77', 'f90 or f95)
 #   as in :   make FC=ifort
 ifndef $FC
-   FC = f90                    # default compiler on this machine
-#  FC = gfortran               # a compiler for testing purposes
+#  FC = f90                    # default compiler on this machine
+   FC = gfortran               # a compiler for testing purposes
 endif
 #
 #option to choose level of optimization:  make debug=1
