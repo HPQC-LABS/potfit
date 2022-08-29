@@ -27,3 +27,10 @@ fit: $(OBJECTS)
 #--------------------------------------------------------------
 # Shell Form from Sean Mcleod,  13 February 2008
 #--------------------------------------------------------------
+# To run the code, execute:
+# ./pot.x < input.5
+
+# input.5 must have lines 2-3 like the following:
+# './2016_04_28.4'             % Name of PotFit input data file
+# 'output'                     % Writefile
+
