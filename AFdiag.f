@@ -12,12 +12,9 @@ c***********************************************************************
 c==> Input:  r= RDIST, NCMM, m=MMLR & Cm's, rhoAB, sVSR2, IDSTT
 c==> Output: ULR, partial derivatives dULRdCm & radial derivative dULRdR
 c-----------------------------------------------------------------------
-c** Original Version from Nike Dattani in June 2011 for 3x3 case
-c** Generalized to incorporate 2x2 case, removed retardation terms and
-c   incorporate damping  ...  by Kai Slaughter:                July 2014
-c* rj:  C6{adj} & C9{adj} included in CmEFF, fixed dampF call (Jan 2010)
-c* rj: corrected basic derivs. w.r.t. Cm and added C6{adj} contributions
-c      to d/dC3  terms and  added  d/dDe (dULRdDe) arising from C6{ad}
+c** Summer 2008 Original Version from Nike Dattani for 3x3 case
+c** July 2014 incorporated 2x2 case, removed retardation terms and
+c   incorporate damping  ...  by Kai Slaughter
 c-----------------------------------------------------------------------
       INTEGER NCMMax
 c-----------------------------------------------------------------------
