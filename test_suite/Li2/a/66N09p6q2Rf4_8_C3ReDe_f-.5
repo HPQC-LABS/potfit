@@ -1,9 +1,9 @@
-  3   3   0  2  1 5 0           % AN1 AN2 CHARGE NISTP NSTATES LPRINT PRINP
+  3   3   0  2  3 5 0           % AN1 AN2 CHARGE NISTP NSTATES LPRINT PRINP
 './DATA_c-a_05-04-13.4'        
 '66N09p6q2Rf4_8_C3ReDe_f-'     
   6   6                         % << DEPENS ON REFERENCE ISOTOPOLOGUE !! >> MN1(1) MN2(1)
   7   7
- 1.d0      1 -1 0   100 1       % UCUTOFF NOWIDTHS IROUND ROBUST CYCMAX uBv 
+ 1.d0      1  0 0   100 1       % UCUTOFF NOWIDTHS IROUND ROBUST CYCMAX uBv 
 
 'a3'   0   0   -9    99 0       % STATE 1 (a 1^3 Sigma_u^+): SLABL IOMEG VMIN VMAX JTRUNC EFSEL
             9  10               % << DEPENS ON REFERENCE ISOTOPOLOGUE !! >> VMAX 6Li2 then 7Li2
@@ -18,7 +18,7 @@
   3.337795D+02        0         % De  IFXDe
   4.170006D+00        0         % Re  IFXRe
 
-  3 -3   5  3   8.00D+00        % nbeta APSE nPB nQB RREF
+  3 -3   3  5   8.00D+00        % nbeta APSE nQB nPB RREF
  -5.161372764975D-01  0         % BETA 0  IFXBETA 0
  -9.804102637260D-02  0         % BETA 1  IFXBETA 1
   1.132213644225D-01  0         % BETA 2  IFXBETA 2
@@ -32,10 +32,10 @@
 
 '13'  -2   0   -1   99 0        % STATE 2 (c 1^3 Sigma_g^+): SLABL IOMEG VMIN VMAX JTRUNC EFSEL 
            84  90               % << DEPENS ON REFERENCE ISOTOPOLOGUE !! >> VMAX 6Li2 then 7Li2    
- 2  0.d0 1           0 50 0     % PSEL VLIM MAXMIN BOBCN OSEL
+ 2  0.d0 2           0 50 0     % PSEL VLIM MAXMIN BOBCN OSEL
   1.40d0   199.0d0  0.002 0     % RMIN RMAX RH
 
-   6          -1.d0 -2 1        % NCMM rhoAB IDF IDSTT
+   6         -1.0d0 -2 1        % NCMM rhoAB IDF IDSTT
   3  3.576828D+05     0 
  -1  0.3353246D+00    1         % << 6Li(D2,cog)-6Li(D1cog), D2 from 2013 Brown, PRA >> 
   6  1.000590d+07     1         % 2009 Tang 6Li , rounded to first digit of converted uncertainty
@@ -46,7 +46,7 @@
   7.0934926D+03       0         % De  IFXDe
   3.065436D+00        0         % Re  IFXRe
 
-  9 -9   6  2   4.80D+00        % Nbeta APSE nPB nQB RREF
+  9 -9   2  6   4.80D+00        % Nbeta APSE nQB nPB RREF
  -1.819414082192D+00  0         % BETA 0  IFXBETA 0
  -4.728967959293D-01  0         % BETA 1  IFXBETA 1
  -5.184287256451D-01  0         % BETA 2  IFXBETA 2

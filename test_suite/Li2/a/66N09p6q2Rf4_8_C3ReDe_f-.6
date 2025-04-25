@@ -12,21 +12,24 @@
      for both atoms, so only the first sets of correction coefficients
      UA(s) and TA(s) are used, and the mass scaling factors are sums over
      the two individual atoms.
-
- Apply "Sequential Rounding & Refitting" at digit-1 of the (local) parameter
-    uncertainty, proceeding sequentially from the LAST parameter to the FIRST.
  Fit uses standard  1/[uncertainty(i)]**2  data weighting
  Non-linear fits are allowed a maximum of  CYCMAX= 100 cycles
 
  For state   a3 
     integrate from   RMIN= 2.20   to   RMAX= 50.00   with mesh   RH= 0.00500
- ***** WARNING  p= 3 .LE.[MMLR(NCMM)-MMLR(1)]= 4 *****
-   so tail of MLR exponential will 'pollute' u_{LR}(r) behaviour
-  ****************************************************************************
+
+ For state   13 
+    integrate from   RMIN= 1.40   to   RMAX=181.40   with mesh   RH= 0.00200
+  'Quadratic correction' for   C*(MLR)    yields       C*{adj}= 4.50895638D+06
+  'Quadratic corrn' for  MLR(m_1=3)  introduces   C9(ø(ò¡,adj) =
+  'Quadratic correction' for   C 8(MLR)   yields      C 8{adj}= 3.95259481D+09
+  'Quadratic correction' for   C 8(MLR)   yields      C 8{adj}= 3.18010952D+09
+
+ For state 23  represent level energies by independent term values
  ==============================================================================
 
- State a3  represented by an MLR(q= 5, p= 3) potential defined in terms of
- ========  exponent coefficient:  beta(R)= betaINF*y3 +(1-y3)*Sum{beta_i*y5^i}
+ State a3  represented by an MLR(q= 3, p= 5) potential defined in terms of
+ ========  exponent coefficient:  beta(R)= betaINF*y5 +(1-y5)*Sum{beta_i*y3^i}
                                                               for  i= 0 to  3
         with radial variable:   y_{p,q} = (R^q - 8.000000^q)/(R^q + 8.000000^q)
     uLR inverse-power terms incorporate DS-type damping with   rhoAB= 0.5400000
@@ -52,18 +55,117 @@
    beta( 2)   1.132213644225D-01    0.0D+00       0.0D+00
    beta( 3)  -2.515349973312D-02    0.0D+00       0.0D+00
    beta_INF  -5.098779854262D-01       --            --
-   C 9{exp}  -4.810164042152D+08       --            --
+   C11{exp}  -8.364370221336D+09       --            --
     uLi( 0)   6.888864517011D-02    0.0D+00       0.0D+00
   u_inf(Li)   0.000000000000D+00       --            --
+ ==============================================================================
+
+ State 13  represented by an MLR(q= 2, p= 6) potential defined in terms of
+ ========  exponent coefficient:  beta(R)= betaINF*y6 +(1-y6)*Sum{beta_i*y2^i}
+                                                              for  i= 0 to  9
+        with radial variable:   y_{p,q} = (R^q - 4.800000^q)/(R^q + 4.800000^q)
+    uLR inverse-power terms incorporate NO damping functions
+                                                C3= 3.5768280D+05[cm-1 Ang^3]
+                                                C*= 3.3532460D-01[cm-1 Ang^*]
+                                                C6= 1.0005900D+07[cm-1 Ang^6]
+                                                C6= 0.0000000D+00[cm-1 Ang^6]
+                                                C8= 3.6996500D+08[cm-1 Ang^8]
+                                                C8= 0.0000000D+00[cm-1 Ang^8]
+                    These constants yield:   betaINF= -8.9930290994
+  'Quadratic correction' for   C*(MLR)    yields       C*{adj}= 4.50895638D+06
+  'Quadratic corrn' for  MLR(m_1=3)  introduces   C9(ø(ò¡,adj) =
+  'Quadratic correction' for   C 8(MLR)   yields      C 8{adj}= 3.95259481D+09
+  'Quadratic correction' for   C 8(MLR)   yields      C 8{adj}= 3.18010952D+09
+
+    Since this state has (projected) electronic angular momentum  OMEGA=-2
+          eigenvalue calculations use centrifugal potential  [J*(J+1) - 4]/r**2
+ Adiabatic BOB functions with {p= 3, q= 3} are scaled by  DELTA{M(A)}/M(A):
+    \tilde{S}(Li;R) = u(inf)*y3 + (1 - y3)*\Sum{u_i * [y3]^i}   for  i= 0 to  3
+        with Li-atom radial expansion variable:   y3 = (R^3 - Re^3)/(R^3 + Re^3)
+ Non-Adiabatic centrifugal BOB fx. with {p= 3, q= 3} are scaled by  M(1)/M(A):
+
+ Including BOB term makes centrifugal potential strength factor   [J(J+1) + 2]
+   Parameter    Initial Value    Uncertainty   Sensitivity
+    VLIM      0.000000000000D+00       --            --
+      Te      8.143583636400D+03    0.0D+00       0.0D+00
+      De      7.093492600000D+03    0.0D+00       0.0D+00
+      Re      3.065436000000D+00    0.0D+00       0.0D+00
+     C 3      3.576828000000D+05    0.0D+00       0.0D+00
+     C-1      3.353246000000D-01       --            --
+     C 6      1.000590000000D+07       --            --
+     C 6      0.000000000000D+00       --            --
+     C 8      3.699650000000D+08       --            --
+     C 8      0.000000000000D+00       --            --
+   beta( 0)  -1.819414082192D+00    0.0D+00       0.0D+00
+   beta( 1)  -4.728967959293D-01    0.0D+00       0.0D+00
+   beta( 2)  -5.184287256451D-01    0.0D+00       0.0D+00
+   beta( 3)  -1.606926700447D-01    0.0D+00       0.0D+00
+   beta( 4)  -8.598014552006D-01    0.0D+00       0.0D+00
+   beta( 5)   3.935211131913D+00    0.0D+00       0.0D+00
+   beta( 6)   9.595477762844D-01    0.0D+00       0.0D+00
+   beta( 7)  -2.821502060220D+00    0.0D+00       0.0D+00
+   beta( 8)  -2.251266244596D+00    0.0D+00       0.0D+00
+   beta( 9)   1.230734010813D+00    0.0D+00       0.0D+00
+   beta_INF  -8.993029099409D+00       --            --
+   C 9{exp}  -9.026945063616D+09       --            --
+    uLi( 0)   1.596338834725D+00    0.0D+00       0.0D+00
+    uLi( 1)   3.139895233177D+00    0.0D+00       0.0D+00
+    uLi( 2)  -1.558684778364D+00    0.0D+00       0.0D+00
+    uLi( 3)  -1.968153637545D+00    0.0D+00       0.0D+00
+  u_inf(Li)   1.231515500000D+00       --            --
+ ==============================================================================
+ All distinct levels of State 23  fitted as independent term values
  ==============================================================================
 
  Neglect data with:  Uncertainties > UCUTOFF=  1.00D+00 (cm-1)
        and State a3  data with  J > JTRUNC=  99
                              or  v  outside range  0  to   9   for   ISOT= 1
                              or  v  outside range  0  to  10   for   ISOT= 2
+       and State 13  data with  J > JTRUNC=  99
+                             or  v  outside range  0  to  84   for   ISOT= 1
+                             or  v  outside range  0  to  90   for   ISOT= 2
+       and State 23  data with  J > JTRUNC=  99
+                             or  v  outside range  0  to   9   for   ISOT= 1
+                             or  v  outside range  0  to  10   for   ISOT= 2
+
+ NOTE that all read-in PAS Binding Energies for   ISTATE= 13  ISOT= 1
+           must be in a single "band" or data group
 
  NOTE that all read-in PAS Binding Energies for   ISTATE= a3  ISOT= 2
            must be in a single "band" or data group
- State a3   Energy Convergence criterion EPS is 1.0D-06 cm-1
 
- *** NLLSSRR problem:  [NPTOT=  11] > min{NPINTMX=8000 NPMAX=8000, NDATA=     1}
+ NOTE that all read-in PAS Binding Energies for   ISTATE= 13  ISOT= 2
+           must be in a single "band" or data group
+
+ For State 23   fit to individual term values for each  {v,J,p,isot}
+ ************************************
+ For Li(  6)-Li(  6)  fit to    0 T(v,J,p) term values,
+                    of which    0 are involved in only one transition
+ For Li(  7)-Li(  7)  fit to   20 T(v,J,p) term values,
+                    of which    2 are involved in only one transition
+ State a3   Energy Convergence criterion EPS is 2.0D-07 cm-1
+ State 13   Energy Convergence criterion EPS is 2.0D-07 cm-1
+ State 23   Energy Convergence criterion EPS is 2.0D-07 cm-1
+  'Quadratic correction' for   C*(MLR)    yields       C*{adj}= 4.50895638D+06
+  'Quadratic corrn' for  MLR(m_1=3)  introduces   C9(ø(ò¡,adj) =
+  'Quadratic correction' for   C 8(MLR)   yields      C 8{adj}= 3.95259481D+09
+  'Quadratic correction' for   C 8(MLR)   yields      C 8{adj}= 3.18010952D+09
+====================================
+!*!* Find State 13  inner-wall inflection at    R=2.2400   V=  5754786.0..... !*!*
+     ... and ... extrapolate repulsive wall inward from the re as a LINEAR function
+====================================
+ Find  2  potential minima:   Vmin=  -7092.256  -7092.888
+               at mesh points   R =    3.06600    4.41400
+ Find  2  potential maxima:   Vmax=  -2718.964***********
+               at mesh points   R =    3.70600  181.39800
+ Find  2  potential minima:   Vmin=  -7091.970  -7092.432
+               at mesh points   R =    3.06600    4.41400
+ Find  2  potential maxima:   Vmax=  -2718.508***********
+               at mesh points   R =    3.70600  181.39800
+    ALF fails to find level   v=  9, J=  0
+ ALF finds the highest calculated level is  E(v= 10)=-2.29895113D+03
+
+
+  *** INITDD ERROR ***
+    For state  2  of isotope  2  a serious error has occured:
+ *** WARNING !! ALF finds highest level   v= 10  is below desired (v= 90, J= -1)
