@@ -1,0 +1,96 @@
+ 3 3  0  3  2  4 0              % AN1 AN2 CHARGE NISTP NSTATES LPRINT PRINTP
+ 'DATA_A-X_06-07-14.4'        
+ '66N16p6q3Rf4_40'  
+  6  6                          % << DEPENS ON REFERENCE ISOTOPOLOGUE !! >> 
+  7  7                          
+  6  7
+  1.d0  1  0  0  100 0          % UCUTOFF NOWIDTHS IROUND ROBUST CYCMAX uBv
+
+ 'X0' 0  0 -1  333  0           % (1) SLABL IOMEG VMIN VMAX JTRUNC EFSEL
+  38 40 38                      % << DEPENS ON REFERENCE ISOTOPOLOGUE !! >>
+ 2 -14903.2967364d0 1  0  5     % << 6Li(D1,cog) 2012 Sansonetti, PRL >> PSEL MAXMIN VLIM BOBCN OSEL
+ 1.35d0 199.0d0  0.001d0        % RMIN RMAX RH
+
+  3   0.540d0  -2  1            % NCMM rhoAB  IDF IDSTT
+ 6  6.719000000d+06   1         % 2009 Tang 6Li , rounded to first digit of converted uncertainty 
+ 8  1.126350000d+08   1         % 2009 Tang 6Li , rounded to first digit of converted uncertainty
+10  2.786940000d+09   1         % 2009 Tang 6Li , rounded to first digit of converted uncertainty
+
+ 8.51677837974804D+03 0         % De  IFXDe
+ 2.67298762729898D+00 0         % Re  IFXRe
+
+ 16 16   5  3   4.07D+00        % APSE Nbeta nPB nQB RREF
+ 1.39040029129661D-01 0         % BETA 0  IFXBETA 0
+-1.43025989878307D+00 0         % BETA 1  IFXBETA 1
+-1.49959674780468D+00 0         % BETA 2  IFXBETA 2
+-6.57046104803199D-01 0         % BETA 3  IFXBETA 3
+ 3.25861370881392D-01 0         % BETA 4  IFXBETA 4
+ 1.01671496662894D+00 0         % BETA 5  IFXBETA 5
+ 1.29094666860630D+00 0         % BETA 6  IFXBETA 6
+ 1.37871234709669D+00 0         % BETA 7  IFXBETA 7
+ 2.56097052231502D+00 0         % BETA 8  IFXBETA 8
+ 5.35310288041737D+00 0         % BETA 9  IFXBETA 9
+ 1.87811601575592D+00 0         % BETA10  IFXBETA10
+-7.40960079935037D+00 0         % BETA11  IFXBETA11
+ 2.11023073838351D+00 0         % BETA12  IFXBETA12
+ 2.06440343029630D+01 0         % BETA13  IFXBETA13
+ 4.35561733400010D+00 0         % BETA14  IFXBETA14
+-2.03065814228068D+01 0         % BETA15  IFXBETA15
+-1.21439009845052D+01 0         % BETA16  IFXBETA16
+
+  2 -6   6  6 0                 % NUA NUB  pAD qAD LRad
+ 2.29860538050586D-01 0         % UA 0  IFXUA 0
+ 1.50215477107784D-01 0         % UA 1  IFXUA 1
+ 5.38751766256571D-01 0         % UA 2  IFXUA 2
+ 0.000000000000D+00   1         % uAinf  IFXuAinf
+
+ -3 -3   3  3                   % NTA NTB  pNA qNA
+
+ 'A0' -2  0 -1  333  0          % (2) SLABL IOMEG VMIN VMAX JTRUNC EFSEL
+  88  97  90                    % << DEPENS ON REFERENCE ISOTOPOLOGUE !! >>
+ 2   0.d0 1 0  50                % PSEL VLIM MAXMIN BOBCN OSEL
+ 1.5d0 199.d0  0.00125d0        % RMIN RMAX RH
+
+  6  -1.d0  -1 1                % NCMM rhoAB IDF IDSTT
+ 3  3.578352D+05      0         % MMLR CmVAL IFXCm
+ 0  0.3353246d+00     1         % << 6Li(D2,cog)-6Li(D1cog), D2 from 2013 Brown, PRA >>
+ 6  1.000590d+07      1         % 2009 Tang 6Li , rounded to first digit of converted uncertainty 
+ 6  0.0d0             1           
+ 8  3.699650d+08      1         % 2009 Tang 6Li , rounded to first digit of converted uncertainty
+ 8  0.0d0             1
+
+ 9.35317778728382D+03 0         % De  IFXDe
+ 3.10793029537894D+00 0         % Re  IFXRe
+
+  0 16   6  3   4.40D+00        % APSE Nbeta nPB nQB RREF
+-1.75756737875661D+00 0         % BETA 0  IFXBETA 0
+-1.03486329794635D+00 0         % BETA 1  IFXBETA 1
+-1.81193864163532D+00 0         % BETA 2  IFXBETA 2
+-1.62305073061048D+00 0         % BETA 3  IFXBETA 3
+-1.44559965249725D+00 0         % BETA 4  IFXBETA 4
+ 1.22833561078468D+00 0         % BETA 5  IFXBETA 5
+ 2.96761165220884D+00 0         % BETA 6  IFXBETA 6
+ 2.60554052251561D+00 0         % BETA 7  IFXBETA 7
+ 1.89448456578911D+00 0         % BETA 8  IFXBETA 8
+ 1.62354155296350D+01 0         % BETA 9  IFXBETA 9
+ 2.05484904966069D+01 0         % BETA10  IFXBETA10
+-2.64817828985504D+01 0         % BETA11  IFXBETA11
+-5.51395954717197D+01 0         % BETA12  IFXBETA12
+ 7.58008679947095D+00 0         % BETA13  IFXBETA13
+ 4.50737875923186D+01 0         % BETA14  IFXBETA14
+ 2.93006816231914D+00 0         % BETA15  IFXBETA15
+-1.404441530289D+01   0         % BETA16  IFXBETA16
+
+  4 -2   3  3 0                 % NUA NUB  pAD qAD LRad
+  1.249624867968D+00  0         % UA 0  IFXUA 0
+  3.787698070788D+00  0         % UA 1  IFXUA 1
+ -1.088908981912D+00  0         % UA 2  IFXUA 2
+  3.909018068072D+00  0         % UA 3  IFXUA 3
+ -6.394564677724D+00  0         % UA 4  IFXUA 4
+  1.2315155D+00       1         % rounded to first digit of uncertainty
+
+  1 -5   3  3                   % NTA NTB  pNA qNA
+  0.000000000000D+00  1         % TA 0  IFXTA 0
+  1.086334503679D-04  0         % TA 1  IFXTA 1
+  0.000000000000D+00  1         % tAinf  IFXTAinf
+
