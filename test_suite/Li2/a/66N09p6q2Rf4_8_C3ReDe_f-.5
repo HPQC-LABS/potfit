@@ -1,0 +1,71 @@
+  3   3   0  2  1 5 0           % AN1 AN2 CHARGE NISTP NSTATES LPRINT PRINP
+'./DATA_c-a_05-04-13.4'        
+'66N09p6q2Rf4_8_C3ReDe_f-'     
+  6   6                         % << DEPENS ON REFERENCE ISOTOPOLOGUE !! >> MN1(1) MN2(1)
+  7   7
+ 1.d0      1 -1 0   100 1       % UCUTOFF NOWIDTHS IROUND ROBUST CYCMAX uBv 
+
+'a3'   0   0   -9    99 0       % STATE 1 (a 1^3 Sigma_u^+): SLABL IOMEG VMIN VMAX JTRUNC EFSEL
+            9  10               % << DEPENS ON REFERENCE ISOTOPOLOGUE !! >> VMAX 6Li2 then 7Li2
+2 -14903.2967364d+00 1 0 5      % << 6Li(D1,cog) 2012 Sansonetti, PRL >> PSEL VLIM MAXMIN BOBCN OSEL
+ 2.20d0    50.0d0   0.005d0     % RMIN RMAX RH
+
+   3       0.540d+00 -2 1       % NCMM rhoAB IDF IDSTT
+  6  6.719000000d+06  1         % 2009 Tang 6Li , rounded to first digit of converted uncertainty 
+  8  1.126350000d+08  1         % 2009 Tang 6Li , rounded to first digit of converted uncertainty
+ 10  2.786940000d+09  1         % 2009 Tang 6Li , rounded to first digit of converted uncertainty
+
+  3.337795D+02        0         % De  IFXDe
+  4.170006D+00        0         % Re  IFXRe
+
+  3 -3   5  3   8.00D+00        % nbeta APSE nPB nQB RREF
+ -5.161372764975D-01  0         % BETA 0  IFXBETA 0
+ -9.804102637260D-02  0         % BETA 1  IFXBETA 1
+  1.132213644225D-01  0         % BETA 2  IFXBETA 2
+ -2.515349973312D-02  0         % BETA 3  IFXBETA 3
+
+  0 -7   6  6 0                 % NUA NUB  pAD qAD LRad
+  6.888864517011D-02  0         % UA 0  IFXUA 0
+  0.000000000000D+00  1         % uAinf  IFXuAinf
+
+  -1   -1  3  3                 % nTA nTB pNA qNA
+
+'13'  -2   0   -1   99 0        % STATE 2 (c 1^3 Sigma_g^+): SLABL IOMEG VMIN VMAX JTRUNC EFSEL 
+           84  90               % << DEPENS ON REFERENCE ISOTOPOLOGUE !! >> VMAX 6Li2 then 7Li2    
+ 2  0.d0 1           0 50 0     % PSEL VLIM MAXMIN BOBCN OSEL
+  1.40d0   199.0d0  0.002 0     % RMIN RMAX RH
+
+   6          -1.d0 -2 1        % NCMM rhoAB IDF IDSTT
+  3  3.576828D+05     0 
+ -1  0.3353246D+00    1         % << 6Li(D2,cog)-6Li(D1cog), D2 from 2013 Brown, PRA >> 
+  6  1.000590d+07     1         % 2009 Tang 6Li , rounded to first digit of converted uncertainty
+  6  0.0d0            1         
+  8  3.699650d+08     1         % 2009 Tang 6Li , rounded to first digit of converted uncertainty
+  8  0.0d0            1 
+
+  7.0934926D+03       0         % De  IFXDe
+  3.065436D+00        0         % Re  IFXRe
+
+  9 -9   6  2   4.80D+00        % Nbeta APSE nPB nQB RREF
+ -1.819414082192D+00  0         % BETA 0  IFXBETA 0
+ -4.728967959293D-01  0         % BETA 1  IFXBETA 1
+ -5.184287256451D-01  0         % BETA 2  IFXBETA 2
+ -1.606926700447D-01  0         % BETA 3  IFXBETA 3
+ -8.598014552006D-01  0         % BETA 4  IFXBETA 4
+  3.935211131913D+00  0         % BETA 5  IFXBETA 5
+  9.595477762844D-01  0         % BETA 6  IFXBETA 6
+ -2.821502060220D+00  0         % BETA 7  IFXBETA 7
+ -2.251266244596D+00  0         % BETA 8  IFXBETA 8
+  1.230734010813D+00  0         % BETA 9  IFXBETA 9
+
+  3 -8   3  3 0                 % NUA NUB  pAD qAD LRad
+  1.596338834725D+00  0         % UA 0  IFXUA 0
+  3.139895233177D+00  0         % UA 1  IFXUA 1
+ -1.558684778364D+00  0         % UA 2  IFXUA 2
+ -1.968153637545D+00  0         % UA 3  IFXUA 3
+  1.2315155D+00       1         % rounded to first digit of uncertainty
+
+ -1 -1    3  3                  % nTA nTB pNA qNA
+
+'23'   0   0     9  99 0        % STATE 3 (  2^3 Pi_g  ): SLABL IOMEG VMIN VMAX JTRUNC EFSEL
+-2 0.0d0 1           0 10       % RPSEL VLIM MAXMIN BOBCN OSEL
