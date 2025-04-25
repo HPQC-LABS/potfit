@@ -20,10 +20,10 @@
 
  For state   13 
     integrate from   RMIN= 1.40   to   RMAX=181.40   with mesh   RH= 0.00200
-  'Quadratic correction' for   C*(MLR)    yields       C*{adj}= 4.50895638D+06
-  'Quadratic corrn' for  MLR(m_1=3)  introduces   C9(ø(ò¡,adj) =
-  'Quadratic correction' for   C 8(MLR)   yields      C 8{adj}= 3.95259481D+09
-  'Quadratic correction' for   C 8(MLR)   yields      C 8{adj}= 3.18010952D+09
+  'Quadratic correction' for  C6(Sigma)  yields   C6(Sigma,adj)= 1.45148560D+07
+  'Quadratic correction' for  C6(^1Pi)   yields  C6(^1Pi,adj) = 1.12723901D+06
+  'Quadratic correction' for  C6(^3Pi)   yields   C6(^3Pi,adj) = 1.12723901D+06
+  'Quadratic corrn' for  MLR(m_1=3)  introduces   C9(Sigm,adj) = 3.65949092D+08
 
  For state 23  represent level energies by independent term values
  ==============================================================================
@@ -65,17 +65,21 @@
                                                               for  i= 0 to  9
         with radial variable:   y_{p,q} = (R^q - 4.800000^q)/(R^q + 4.800000^q)
     uLR inverse-power terms incorporate NO damping functions
-                                                C3= 3.5768280D+05[cm-1 Ang^3]
-                                                C*= 3.3532460D-01[cm-1 Ang^*]
-                                                C6= 1.0005900D+07[cm-1 Ang^6]
-                                                C6= 0.0000000D+00[cm-1 Ang^6]
-                                                C8= 3.6996500D+08[cm-1 Ang^8]
-                                                C8= 0.0000000D+00[cm-1 Ang^8]
-                    These constants yield:   betaINF= -8.9930290994
-  'Quadratic correction' for   C*(MLR)    yields       C*{adj}= 4.50895638D+06
-  'Quadratic corrn' for  MLR(m_1=3)  introduces   C9(ø(ò¡,adj) =
-  'Quadratic correction' for   C 8(MLR)   yields      C 8{adj}= 3.95259481D+09
-  'Quadratic correction' for   C 8(MLR)   yields      C 8{adj}= 3.18010952D+09
+ Use Aubert-Frecon 3x3  c-state uLR(r)  with   Aso=   0.335325[cm-1]
+                                        C3(^3Sig)= 3.5768280D+05[cm-1 Ang^{ 3}]
+                                        C3(^1Pi) = 1.7884140D+05[cm-1 Ang^{ 3}]
+                                        C3(^3Pi) =-1.7884140D+05[cm-1 Ang^{ 3}]
+                                        C6(^3Sig)= 1.0005900D+07[cm-1 Ang^{ 6}]
+                                        C6(^1Pi) = 0.0000000D+00[cm-1 Ang^{ 6}]
+                                        C6(^3Pi) = 0.0000000D+00[cm-1 Ang^{ 6}]
+                                        C8(^3Sig)= 3.6996500D+08[cm-1 Ang^{ 8}]
+                                        C8(^1Pi) = 0.0000000D+00[cm-1 Ang^{ 8}]
+                                        C8(^3Pi) = 0.0000000D+00[cm-1 Ang^{ 8}]
+                    These constants yield:   betaINF= -0.2527828497
+  'Quadratic correction' for  C6(Sigma)  yields   C6(Sigma,adj)= 1.45148560D+07
+  'Quadratic correction' for  C6(^1Pi)   yields  C6(^1Pi,adj) = 1.12723901D+06
+  'Quadratic correction' for  C6(^3Pi)   yields   C6(^3Pi,adj) = 1.12723901D+06
+  'Quadratic corrn' for  MLR(m_1=3)  introduces   C9(Sigm,adj) = 3.65949092D+08
 
     Since this state has (projected) electronic angular momentum  OMEGA=-2
           eigenvalue calculations use centrifugal potential  [J*(J+1) - 4]/r**2
@@ -90,12 +94,16 @@
       Te      8.143583636400D+03    0.0D+00       0.0D+00
       De      7.093492600000D+03    0.0D+00       0.0D+00
       Re      3.065436000000D+00    0.0D+00       0.0D+00
-     C 3      3.576828000000D+05    0.0D+00       0.0D+00
-     C-1      3.353246000000D-01       --            --
-     C 6      1.000590000000D+07       --            --
-     C 6      0.000000000000D+00       --            --
-     C 8      3.699650000000D+08       --            --
-     C 8      0.000000000000D+00       --            --
+  DELTAE      3.353246000000D-01       --            --
+   C3(^3      3.576828000000D+05       --            --
+   C3(^1      1.788414000000D+05       --            --
+   C3(^3     -1.788414000000D+05       --            --
+   C6(^3      1.000590000000D+07       --            --
+   C6(^1      0.000000000000D+00       --            --
+   C6(^3      0.000000000000D+00       --            --
+   C8(^3      3.699650000000D+08       --            --
+   C8(^1      0.000000000000D+00       --            --
+   C8(^3      0.000000000000D+00       --            --
    beta( 0)  -1.819414082192D+00    0.0D+00       0.0D+00
    beta( 1)  -4.728967959293D-01    0.0D+00       0.0D+00
    beta( 2)  -5.184287256451D-01    0.0D+00       0.0D+00
@@ -106,8 +114,8 @@
    beta( 7)  -2.821502060220D+00    0.0D+00       0.0D+00
    beta( 8)  -2.251266244596D+00    0.0D+00       0.0D+00
    beta( 9)   1.230734010813D+00    0.0D+00       0.0D+00
-   beta_INF  -8.993029099409D+00       --            --
-   C 9{exp}  -9.026945063616D+09       --            --
+   beta_INF  -2.527828496803D-01       --            --
+   C 9{exp}   1.349180938408D+09       --            --
     uLi( 0)   1.596338834725D+00    0.0D+00       0.0D+00
     uLi( 1)   3.139895233177D+00    0.0D+00       0.0D+00
     uLi( 2)  -1.558684778364D+00    0.0D+00       0.0D+00
@@ -146,26 +154,14 @@
  State a3   Energy Convergence criterion EPS is 2.0D-07 cm-1
  State 13   Energy Convergence criterion EPS is 2.0D-07 cm-1
  State 23   Energy Convergence criterion EPS is 2.0D-07 cm-1
-  'Quadratic correction' for   C*(MLR)    yields       C*{adj}= 4.50895638D+06
-  'Quadratic corrn' for  MLR(m_1=3)  introduces   C9(ø(ò¡,adj) =
-  'Quadratic correction' for   C 8(MLR)   yields      C 8{adj}= 3.95259481D+09
-  'Quadratic correction' for   C 8(MLR)   yields      C 8{adj}= 3.18010952D+09
+  'Quadratic correction' for  C6(Sigma)  yields   C6(Sigma,adj)= 1.45148560D+07
+  'Quadratic correction' for  C6(^1Pi)   yields  C6(^1Pi,adj) = 1.12723901D+06
+  'Quadratic correction' for  C6(^3Pi)   yields   C6(^3Pi,adj) = 1.12723901D+06
+  'Quadratic corrn' for  MLR(m_1=3)  introduces   C9(Sigm,adj) = 3.65949092D+08
 ====================================
-!*!* Find State 13  inner-wall inflection at    R=2.2400   V=  5754786.0..... !*!*
-     ... and ... extrapolate repulsive wall inward from the re as a LINEAR function
-====================================
- Find  2  potential minima:   Vmin=  -7092.256  -7092.888
-               at mesh points   R =    3.06600    4.41400
- Find  2  potential maxima:   Vmax=  -2718.964***********
-               at mesh points   R =    3.70600  181.39800
- Find  2  potential minima:   Vmin=  -7091.970  -7092.432
-               at mesh points   R =    3.06600    4.41400
- Find  2  potential maxima:   Vmax=  -2718.508***********
-               at mesh points   R =    3.70600  181.39800
-    ALF fails to find level   v=  9, J=  0
- ALF finds the highest calculated level is  E(v= 10)=-2.29895113D+03
-
-
-  *** INITDD ERROR ***
-    For state  2  of isotope  2  a serious error has occured:
- *** WARNING !! ALF finds highest level   v= 10  is below desired (v= 90, J= -1)
+!*!* Find State 13  inner-wall inflection at    R=2.6500   V=    -5408.8..... !*!*
+ Find  3  potential minima:   Vmin=  -7092.296  -4547.525  -7092.976
+               at mesh points   R =    3.06600    3.84800    4.66400
+ Find  3  potential maxima:   Vmax=  -4326.083  -4492.559     -0.040
+               at mesh points   R =    3.72600    3.90800  181.39800
+ *** So  STOP !!!!
