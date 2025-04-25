@@ -21,3 +21,151 @@
  ***** WARNING  p= 3 .LE.[MMLR(NCMM)-MMLR(1)]= 4 *****
    so tail of MLR exponential will 'pollute' u_{LR}(r) behaviour
   ****************************************************************************
+
+ For state   A0 
+    integrate from   RMIN= 1.50   to   RMAX=114.00   with mesh   RH= 0.00125
+ ***** WARNING  p= 3 .LE.[MMLR(NCMM)-MMLR(1)]= 5 *****
+   so tail of MLR exponential will 'pollute' u_{LR}(r) behaviour
+  ****************************************************************************
+  'Quadratic correction' for   C0(MLR)    yields       C0{adj}= 3.42252777D+06
+  'Quadratic corrn' for  MLR(m_1=3)  introduces   C9(Ý0€,adj) =
+  'Quadratic correction' for   C 8(MLR)   yields      C 8{adj}= 1.93543501D+09
+  'Quadratic correction' for   C 8(MLR)   yields      C 8{adj}= 1.83068639D+09
+ ==============================================================================
+
+ State X0  represented by an MLR(q= 5, p= 3) potential defined in terms of
+ ========  exponent coefficient:  beta(R)= betaINF*y3 +(1-y3)*Sum{beta_i*y5^i}
+                                                              for  i= 0 to 16
+        with radial variable:   y_{p,q} = (R^q - 4.070000^q)/(R^q + 4.070000^q)
+    uLR inverse-power terms incorporate DS-type damping with   rhoAB= 0.5400000
+           defined to give very short-range  Dm(r)*Cm/r^m  behaviour   r^{-1.0}
+        Dm(r)= [1 - exp(- 3.30(rhoAB*r)/m - 0.423(rhoAB*r)^2/sqrt{m})]^{m-1.0}
+                                                C6= 6.7190000D+06[cm-1 Ang^6]
+                                                C8= 1.1263500D+08[cm-1 Ang^8]
+                                               C10= 2.7869400D+09[cm-1 Ang^{10}]
+                    These constants yield:   betaINF=  1.3489050102
+ Adiabatic BOB functions with {p= 6, q= 6} are scaled by  DELTA{M(A)}/M(A):
+    \tilde{S}(Li;R) = u(inf)*y6 + (1 - y6)*\Sum{u_i * [y6]^i}   for  i= 0 to  2
+        with Li-atom radial expansion variable:   y6 = (R^6 - Re^6)/(R^6 + Re^6)
+ Non-Adiabatic centrifugal BOB fx. with {p= 3, q= 3} are scaled by  M(1)/M(A):
+   Parameter    Initial Value    Uncertainty   Sensitivity
+    VLIM     -1.490329673640D+04       --            --
+      De      8.516778379748D+03    0.0D+00       0.0D+00
+      Re      2.672987627299D+00    0.0D+00       0.0D+00
+     C 6      6.719000000000D+06       --            --
+     C 8      1.126350000000D+08       --            --
+     C10      2.786940000000D+09       --            --
+   beta( 0)   1.390400291297D-01    0.0D+00       0.0D+00
+   beta( 1)  -1.430259898783D+00    0.0D+00       0.0D+00
+   beta( 2)  -1.499596747805D+00    0.0D+00       0.0D+00
+   beta( 3)  -6.570461048032D-01    0.0D+00       0.0D+00
+   beta( 4)   3.258613708814D-01    0.0D+00       0.0D+00
+   beta( 5)   1.016714966629D+00    0.0D+00       0.0D+00
+   beta( 6)   1.290946668606D+00    0.0D+00       0.0D+00
+   beta( 7)   1.378712347097D+00    0.0D+00       0.0D+00
+   beta( 8)   2.560970522315D+00    0.0D+00       0.0D+00
+   beta( 9)   5.353102880417D+00    0.0D+00       0.0D+00
+   beta(10)   1.878116015756D+00    0.0D+00       0.0D+00
+   beta(11)  -7.409600799350D+00    0.0D+00       0.0D+00
+   beta(12)   2.110230738384D+00    0.0D+00       0.0D+00
+   beta(13)   2.064403430296D+01    0.0D+00       0.0D+00
+   beta(14)   4.355617334000D+00    0.0D+00       0.0D+00
+   beta(15)  -2.030658142281D+01    0.0D+00       0.0D+00
+   beta(16)  -1.214390098451D+01    0.0D+00       0.0D+00
+   beta_INF   1.348905010159D+00       --            --
+   C 9{exp}   1.306672837474D+09       --            --
+    uLi( 0)   2.298605380506D-01    0.0D+00       0.0D+00
+    uLi( 1)   1.502154771078D-01    0.0D+00       0.0D+00
+    uLi( 2)   5.387517662566D-01    0.0D+00       0.0D+00
+  u_inf(Li)   0.000000000000D+00       --            --
+ ==============================================================================
+
+ State A0  represented by an MLR(q= 6, p= 3) potential defined in terms of
+ ========  exponent coefficient:  beta(R)= betaINF*y3 +(1-y3)*Sum{beta_i*y6^i}
+                                                              for  i= 0 to 16
+        with radial variable:   y_{p,q} = (R^q - 4.400000^q)/(R^q + 4.400000^q)
+    uLR inverse-power terms incorporate NO damping functions
+                                                C3= 3.5783520D+05[cm-1 Ang^3]
+                                                C0= 3.3532460D-01[cm-1 Ang^0]
+                                                C6= 1.0005900D+07[cm-1 Ang^6]
+                                                C6= 0.0000000D+00[cm-1 Ang^6]
+                                                C8= 3.6996500D+08[cm-1 Ang^8]
+                                                C8= 0.0000000D+00[cm-1 Ang^8]
+                    These constants yield:   betaINF= -8.1646847094
+  'Quadratic correction' for   C0(MLR)    yields       C0{adj}= 3.42252777D+06
+  'Quadratic corrn' for  MLR(m_1=3)  introduces   C9(Ý0€,adj) =
+  'Quadratic correction' for   C 8(MLR)   yields      C 8{adj}= 1.93543501D+09
+  'Quadratic correction' for   C 8(MLR)   yields      C 8{adj}= 1.83068639D+09
+
+    Since this state has (projected) electronic angular momentum  OMEGA=-2
+          eigenvalue calculations use centrifugal potential  [J*(J+1) - 4]/r**2
+ Adiabatic BOB functions with {p= 3, q= 3} are scaled by  DELTA{M(A)}/M(A):
+    \tilde{S}(Li;R) = u(inf)*y3 + (1 - y3)*\Sum{u_i * [y3]^i}   for  i= 0 to  4
+        with Li-atom radial expansion variable:   y3 = (R^3 - Re^3)/(R^3 + Re^3)
+ Non-Adiabatic centrifugal BOB fx. with {p= 3, q= 3} are scaled by  M(1)/M(A):
+    \tilde{R}(Li;R) = u(inf)*y3 + (1 - y3)*\Sum{u_i * [y3]^i}   for  i= 0 to  1
+        with Li-atom radial expansion variable:   y3 = (R^3 - Re^3)/(R^3 + Re^3)
+
+ Including BOB term makes centrifugal potential strength factor   [J(J+1) + 2]
+   Parameter    Initial Value    Uncertainty   Sensitivity
+    VLIM      0.000000000000D+00       --            --
+      Te      1.406689732886D+04    0.0D+00       0.0D+00
+      De      9.353177787284D+03    0.0D+00       0.0D+00
+      Re      3.107930295379D+00    0.0D+00       0.0D+00
+     C 3      3.578352000000D+05    0.0D+00       0.0D+00
+     C 0      3.353246000000D-01       --            --
+     C 6      1.000590000000D+07       --            --
+     C 6      0.000000000000D+00       --            --
+     C 8      3.699650000000D+08       --            --
+     C 8      0.000000000000D+00       --            --
+   beta( 0)  -1.757567378757D+00    0.0D+00       0.0D+00
+   beta( 1)  -1.034863297946D+00    0.0D+00       0.0D+00
+   beta( 2)  -1.811938641635D+00    0.0D+00       0.0D+00
+   beta( 3)  -1.623050730610D+00    0.0D+00       0.0D+00
+   beta( 4)  -1.445599652497D+00    0.0D+00       0.0D+00
+   beta( 5)   1.228335610785D+00    0.0D+00       0.0D+00
+   beta( 6)   2.967611652209D+00    0.0D+00       0.0D+00
+   beta( 7)   2.605540522516D+00    0.0D+00       0.0D+00
+   beta( 8)   1.894484565789D+00    0.0D+00       0.0D+00
+   beta( 9)   1.623541552963D+01    0.0D+00       0.0D+00
+   beta(10)   2.054849049661D+01    0.0D+00       0.0D+00
+   beta(11)  -2.648178289855D+01    0.0D+00       0.0D+00
+   beta(12)  -5.513959547172D+01    0.0D+00       0.0D+00
+   beta(13)   7.580086799471D+00    0.0D+00       0.0D+00
+   beta(14)   4.507378759232D+01    0.0D+00       0.0D+00
+   beta(15)   2.930068162319D+00    0.0D+00       0.0D+00
+   beta(16)  -1.404441530289D+01    0.0D+00       0.0D+00
+   beta_INF  -8.164684709448D+00       --            --
+   C 6{exp}  -3.019523842527D+08       --            --
+    uLi( 0)   1.249624867968D+00    0.0D+00       0.0D+00
+    uLi( 1)   3.787698070788D+00    0.0D+00       0.0D+00
+    uLi( 2)  -1.088908981912D+00    0.0D+00       0.0D+00
+    uLi( 3)   3.909018068072D+00    0.0D+00       0.0D+00
+    uLi( 4)  -6.394564677724D+00    0.0D+00       0.0D+00
+  u_inf(Li)   1.231515500000D+00       --            --
+    tLi( 0)   0.000000000000D+00       --            --
+    tLi( 1)   1.086334503679D-04    0.0D+00       0.0D+00
+  t_inf(Li)   0.000000000000D+00       --            --
+ ==============================================================================
+
+ Neglect data with:  Uncertainties > UCUTOFF=  1.00D+00 (cm-1)
+       and State X0  data with  J > JTRUNC= 333
+                             or  v  outside range  0  to  38   for   ISOT= 1
+                             or  v  outside range  0  to  40   for   ISOT= 2
+                             or  v  outside range  0  to  38   for   ISOT= 3
+       and State A0  data with  J > JTRUNC= 333
+                             or  v  outside range  0  to  88   for   ISOT= 1
+                             or  v  outside range  0  to  97   for   ISOT= 2
+                             or  v  outside range  0  to  90   for   ISOT= 3
+
+ NOTE that all read-in PAS Binding Energies for   ISTATE= X0  ISOT= 1
+           must be in a single "band" or data group
+
+ NOTE that all read-in PAS Binding Energies for   ISTATE= A0  ISOT= 3
+           must be in a single "band" or data group
+
+ NOTE that all read-in PAS Binding Energies for   ISTATE= A0  ISOT= 2
+           must be in a single "band" or data group
+
+ NOTE that all read-in PAS Binding Energies for   ISTATE= A0  ISOT= 1
+           must be in a single "band" or data group
