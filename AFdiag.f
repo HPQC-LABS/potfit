@@ -22,8 +22,8 @@ c-----------------------------------------------------------------------
      1  R6,R8,R9,T1,T0,T2,T0P,T0P23,DDe1,DDe2,DDe3,DELTAE,Modulus,Z,
      2  Dm(NCMMax),Dmp(NCMMax),De,DDe(3,3),Dmpp(NCMMax),rhoAB,A(3,3),
      3  DR(3,3),Q(3,3),DMx(NCMMax,3,3),DMtemp(3,3),DEIGMx(NCMMax,1,1),
-     4  DEIGMtemp(1,1),DEIGR(1,1),DEIGdDe(1,1),EIGVEC(3,1),RESID(3,1),
-     5  W(3),RPOW(NCMMax), dULRdDe
+     4  DEIGMtemp(1,1),DEIGR(1,1),DEIGDe(1,1),EIGVEC(3,1),RESID(3,1),
+     5  W(3),RPOW(NCMMax),dULRdDe
       INTEGER H,I,J,K,L,M,X,NCMM,MMLR(NCMMax),sVSR2,IDSTT,PSEL
 c-----------------------------------------------------------------------
       DELTAE=Cm(1)
@@ -197,9 +197,9 @@ c!! For an MLR PEF, adjust derivatives for d/dC3{C6^{adj}} term
      1                                            (2.d0*De*RPOW(J)))
                      ENDDO
 c!! and finally ... derivatives w.r.t. De 
-                  DDE1= ((Dm(I-3)*Cm(I-3)/2.d0*De)**2/RPOW(I)
-                  DDE2= ((Dm(I-2)*Cm(I-2)/2.d0*De)**2/RPOW(I)
-                  DDE3= ((Dm(I-1)*Cm(I-1)/2.d0*De)**2/RPOW(I)
+                  DDE1= ((Dm(I-3)*Cm(I-3)/2.d0*De)**2/RPOW(I))
+                  DDE2= ((Dm(I-2)*Cm(I-2)/2.d0*De)**2/RPOW(I))
+                  DDE3= ((Dm(I-1)*Cm(I-1)/2.d0*De)**2/RPOW(I))
                   DDe(1,1)= (DDe1 + DDe2 + DDe3)/3.d0
                   DDe(1,2)= (-2.d0*DDe1 + DDe2 + DDe3)/(3.d0*SQRT(2.d0))
                   DDe(2,1)= DDe(1,2)
@@ -207,7 +207,7 @@ c!! and finally ... derivatives w.r.t. De
                   DDe(3,1)= DDe(1,3)
                   DDe(2,2)= (4.d0*DDe1 + DDe2 + DDe3)/6.d0
                   DDe(2,3)= DDe(1,3)/SQRT(2.d0)
-                  DDe(3,2)- DDe(2,3)
+                  DDe(3,2)= DDe(2,3)
                   DDe(3,3)= (DDe2 + DDe3)/2.d0
                   ENDIF   
               ENDDO
@@ -260,9 +260,9 @@ cc  loop over values of m to determine partial derivatives w.r.t. each Cm
              dULRdCm(I)= DEIGMtemp(1,1)
              ENDDO
           DEIGR = -MATMUL(TRANSPOSE(EIGVEC),MATMUL(DR,EIGVEC))
-          dULRdR= DEIGR(1,1)    !! radial derivative w.r.t. r (I think!)
+          dULRdR = DEIGR(1,1)
           DEIGDe = -MATMUL(TRANSPOSE(EIGVEC),MATMUL(DDe,EIGVEC))
-          dULRdDe= DEIGDe(1,1)              !! derivatives w.r.t. De  ???
+          dULRdDe = DEIGDe(1,1)
 c------------------------------------------------------------------------
           ENDIF
 c------------------------------------------------------------------------
