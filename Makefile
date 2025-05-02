@@ -22,7 +22,7 @@ ifndef debug
 OBJECTS = dpotfit.o masses16.o readata.o tvsort.o readpot.o writepot.o vgen.o quadCORR.o dampF.o AFdiag.o mkpredict.o dyidpj.o dvirdp.o dvacdp.o vgenp.o diffstats.o prepott.o mappar.o alf.o scecor.o cdjoel.o schrq.o nllssrr.o fununc.o gpround.o PSfunc.o uncbv.o
 
 fit: $(OBJECTS)
-	$(FC) $(FFLAGS) $(OBJECTS) -o tdpot.x
+	$(FC) $(FFLAGS) $(OBJECTS) -o pot.x
 
 #--------------------------------------------------------------
 # Shell Form from Sean Mcleod,  13 February 2008
