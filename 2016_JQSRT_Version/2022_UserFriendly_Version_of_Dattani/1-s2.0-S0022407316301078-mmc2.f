@@ -6392,7 +6392,7 @@ cc    DATA cDS/0.468d0,0.446d0,0.423d0,0.405d0,0.3892460703d0,0.d0,
       SAVE FIRST, bpm, cpm
 c-----------------------------------------------------------------------
       MMTEMP = MMLR(1)
-      IF(MMLR(1).LE.0) MMLR(1) = 1
+c      IF(MMLR(1).LE.0) MMLR(1) = 1 !2025: No idea what's going on here.
       IF(RHOab.LE.0) THEN
           DO  m=1,NCMMax
               DM(m)=1.d0
