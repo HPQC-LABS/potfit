@@ -32,5 +32,4 @@ fit: $(OBJECTS)
 
 # input.5 must have lines 2-3 like the following:
 # './2016_04_28.4'             % Name of PotFit input data file
-# 'output'                     % Writefile
-
+# 'output'                     % Writefile"
